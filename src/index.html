@@ -1,271 +1,476 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MiniLend — Demo UI</title>
-  <link rel="icon" href="data:;base64,=" />
-  <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#93c5fd}
-    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    body{margin:0;background:linear-gradient(180deg,#071028 0%,#081025 100%);color:#e6eef8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-    .container{width:100%;max-width:980px}
-    header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#5b21b6);display:flex;align-items:center;justify-content:center;font-weight:700}
-    h1{margin:0;font-size:20px}
-    p.lead{color:#9fb3d8;margin:6px 0 18px}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MiniLend — Demo UI</title>
+    <link rel="icon" href="data:;base64,=" />
+    <style>
+      :root {
+        --bg: #0f1724;
+        --card: #0b1220;
+        --accent: #7c3aed;
+        --muted: #93c5fd;
+      }
+      * {
+        box-sizing: border-box;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI,
+          Roboto, Helvetica, Arial;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #071028 0%, #081025 100%);
+        color: #e6eef8;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .container {
+        width: 100%;
+        max-width: 980px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .logo {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), #5b21b6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+      }
+      h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      p.lead {
+        color: #9fb3d8;
+        margin: 6px 0 18px;
+      }
 
-    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
-    .card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);padding:16px;border-radius:12px}
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 18px;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        padding: 16px;
+        border-radius: 12px;
+      }
 
-    label{display:block;font-size:13px;color:#bcd7ff;margin-bottom:6px}
-    input[type=text],input[type=number]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    button{background:var(--accent);border:none;padding:10px 12px;border-radius:8px;color:white;cursor:pointer}
-    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-    .muted{color:#93c5fd;font-size:13px}
+      label {
+        display: block;
+        font-size: 13px;
+        color: #bcd7ff;
+        margin-bottom: 6px;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: transparent;
+        color: inherit;
+      }
+      button {
+        background: var(--accent);
+        border: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .muted {
+        color: #93c5fd;
+        font-size: 13px;
+      }
 
-    .row{display:flex;gap:8px;align-items:center}
-    .stat{display:flex;flex-direction:column;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.02)}
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        border-radius: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.01),
+          rgba(255, 255, 255, 0)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.02);
+      }
 
-    pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;color:#cfe8ff}
-    footer{margin-top:18px;color:#98b6da;font-size:13px}
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0, 0, 0, 0.15);
+        padding: 8px;
+        border-radius: 8px;
+        color: #cfe8ff;
+      }
+      footer {
+        margin-top: 18px;
+        color: #98b6da;
+        font-size: 13px;
+      }
 
-    @media(max-width:880px){.grid{grid-template-columns:1fr;}.logo{width:44px;height:44px}}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <div class="logo">ML</div>
-      <div>
-        <h1>MiniLend — Demo UI</h1>
-        <p class="lead">A minimal frontend to interact with your MiniLend smart contracts (stake, borrow, repay, withdraw).</p>
-      </div>
-    </header>
+      @media (max-width: 880px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .logo {
+          width: 44px;
+          height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo">ML</div>
+        <div>
+          <h1>MiniLend — Demo UI</h1>
+          <p class="lead">
+            A minimal frontend to interact with your MiniLend smart contracts
+            (stake, borrow, repay, withdraw).
+          </p>
+        </div>
+      </header>
 
-    <div class="grid">
-      <!-- Left column: actions & status -->
-      <div>
-        <div class="card">
-          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div>
-              <div class="muted">Wallet</div>
-              <div id="account">Not connected</div>
+      <div class="grid">
+        <!-- Left column: actions & status -->
+        <div>
+          <div class="card">
+            <div
+              class="row"
+              style="
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              "
+            >
+              <div>
+                <div class="muted">Wallet</div>
+                <div id="account">Not connected</div>
+              </div>
+              <div>
+                <button id="connectBtn">Connect Wallet</button>
+              </div>
             </div>
-            <div>
-              <button id="connectBtn">Connect Wallet</button>
+
+            <section style="margin-bottom: 12px">
+              <label>Stake ETH (send with transaction value)</label>
+              <div class="row">
+                <input
+                  id="stakeInput"
+                  type="number"
+                  placeholder="Amount in ETH (e.g. 0.1)"
+                  step="0.0001"
+                />
+                <button id="stakeBtn">Stake</button>
+              </div>
+              <div class="muted" style="margin-top: 8px">
+                Tip: In Remix tests, set transaction value when calling stake
+                function.
+              </div>
+            </section>
+
+            <section style="margin-bottom: 12px">
+              <label
+                >Borrow USDT (amount in token smallest unit shown in UI)</label
+              >
+              <div class="row">
+                <input
+                  id="borrowInput"
+                  type="number"
+                  placeholder="Amount (e.g. 100)"
+                />
+                <button id="borrowBtn">Borrow</button>
+              </div>
+            </section>
+
+            <section style="margin-bottom: 12px">
+              <label>Repay USDT</label>
+              <div class="row">
+                <input id="repayInput" type="number" placeholder="Amount" />
+                <button id="approveBtn" class="secondary">Approve</button>
+                <button id="repayBtn">Repay</button>
+              </div>
+              <div class="muted" style="margin-top: 8px">
+                Remember: call approve() on token before repay (approve allows
+                contract to pull tokens).
+              </div>
+            </section>
+
+            <section>
+              <label>Withdraw ETH Collateral</label>
+              <div class="row">
+                <input
+                  id="withdrawInput"
+                  type="number"
+                  placeholder="Amount in ETH"
+                />
+                <button id="withdrawBtn">Withdraw</button>
+              </div>
+            </section>
+          </div>
+
+          <div class="card" style="margin-top: 12px">
+            <h3 style="margin: 0 0 8px 0">Account Stats</h3>
+            <div class="row" style="gap: 12px">
+              <div class="stat">
+                <div class="muted">Staked ETH</div>
+                <div id="stakedEth">-</div>
+              </div>
+              <div class="stat">
+                <div class="muted">Borrowed USDT</div>
+                <div id="borrowedUsd">-</div>
+              </div>
+              <div class="stat">
+                <div class="muted">Available to borrow</div>
+                <div id="availableBorrow">-</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 12px">
+              <div class="muted">Contract Balances</div>
+              <div>MockUSDT: <span id="contractUsdt">-</span></div>
+              <div>ETH (this contract): <span id="contractEth">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: quick config & logs -->
+        <div>
+          <div class="card">
+            <label>Config</label>
+            <div style="margin-bottom: 8px">MiniLend Contract Address</div>
+            <input id="miniLendAddress" type="text" placeholder="0x..." />
+            <div style="margin-top: 8px">MockUSDT Contract Address</div>
+            <input id="tokenAddress" type="text" placeholder="0x..." />
+
+            <div style="margin-top: 12px" class="row">
+              <button id="loadBtn" class="secondary">Load Contracts</button>
             </div>
           </div>
 
-          <section style="margin-bottom:12px">
-            <label>Stake ETH (send with transaction value)</label>
-            <div class="row">
-              <input id="stakeInput" type="number" placeholder="Amount in ETH (e.g. 0.1)" step="0.0001" />
-              <button id="stakeBtn">Stake</button>
-            </div>
-            <div class="muted" style="margin-top:8px">Tip: In Remix tests, set transaction value when calling stake function.</div>
-          </section>
-
-          <section style="margin-bottom:12px">
-            <label>Borrow USDT (amount in token smallest unit shown in UI)</label>
-            <div class="row">
-              <input id="borrowInput" type="number" placeholder="Amount (e.g. 100)" />
-              <button id="borrowBtn">Borrow</button>
-            </div>
-          </section>
-
-          <section style="margin-bottom:12px">
-            <label>Repay USDT</label>
-            <div class="row">
-              <input id="repayInput" type="number" placeholder="Amount" />
-              <button id="approveBtn" class="secondary">Approve</button>
-              <button id="repayBtn">Repay</button>
-            </div>
-            <div class="muted" style="margin-top:8px">Remember: call approve() on token before repay (approve allows contract to pull tokens).</div>
-          </section>
-
-          <section>
-            <label>Withdraw ETH Collateral</label>
-            <div class="row">
-              <input id="withdrawInput" type="number" placeholder="Amount in ETH" />
-              <button id="withdrawBtn">Withdraw</button>
-            </div>
-          </section>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Account Stats</h3>
-          <div class="row" style="gap:12px">
-            <div class="stat"><div class="muted">Staked ETH</div><div id="stakedEth">-</div></div>
-            <div class="stat"><div class="muted">Borrowed USDT</div><div id="borrowedUsd">-</div></div>
-            <div class="stat"><div class="muted">Available to borrow</div><div id="availableBorrow">-</div></div>
-          </div>
-
-          <div style="margin-top:12px">
-            <div class="muted">Contract Balances</div>
-            <div>MockUSDT: <span id="contractUsdt">-</span></div>
-            <div>ETH (this contract): <span id="contractEth">-</span></div>
+          <div class="card" style="margin-top: 12px">
+            <label>Quick Logs</label>
+            <pre id="log">
+UI ready. Enter contract addresses and connect wallet.</pre
+            >
           </div>
         </div>
-
       </div>
 
-      <!-- Right column: quick config & logs -->
-      <div>
-        <div class="card">
-          <label>Config</label>
-          <div style="margin-bottom:8px">MiniLend Contract Address</div>
-          <input id="miniLendAddress" type="text" placeholder="0x..." />
-          <div style="margin-top:8px">MockUSDT Contract Address</div>
-          <input id="tokenAddress" type="text" placeholder="0x..." />
-
-          <div style="margin-top:12px" class="row"><button id="loadBtn" class="secondary">Load Contracts</button></div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <label>Quick Logs</label>
-          <pre id="log">UI ready. Enter contract addresses and connect wallet.</pre>
-        </div>
-      </div>
+      <footer>
+        Replace the contract ABI and addresses in the script below before using
+        on a live network.
+      </footer>
     </div>
 
-    <footer>Replace the contract ABI and addresses in the script below before using on a live network.</footer>
-  </div>
+    <!-- Ethers.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+    <script>
+      // ============ Replace these with your ABIs or small ABI fragments ============
+      const miniLendAbi = [
+        // minimal ABI: stakeETH(), BorrowUSD(uint256), RepayUSD(uint256), WithdrawCollateralETH(uint256), howMuchYouCanStillBorrow(address), getters
+        "function stakeETH() payable",
+        "function BorrowUSD(uint256)",
+        "function RepayUSD(uint256)",
+        "function WithdrawCollateralETH(uint256)",
+        "function howMuchYouCanStillBorrow(address) view returns (uint256)",
+        "function users(address) view returns (uint256 StakedEth, uint256 BorrowedUsdt)",
+      ];
 
-  <!-- Ethers.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
-  <script>
-    // ============ Replace these with your ABIs or small ABI fragments ============
-    const miniLendAbi = [
-      // minimal ABI: stakeETH(), BorrowUSD(uint256), RepayUSD(uint256), WithdrawCollateralETH(uint256), howMuchYouCanStillBorrow(address), getters
-      "function stakeETH() payable",
-      "function BorrowUSD(uint256)",
-      "function RepayUSD(uint256)",
-      "function WithdrawCollateralETH(uint256)",
-      "function howMuchYouCanStillBorrow(address) view returns (uint256)",
-      "function users(address) view returns (uint256 StakedEth, uint256 BorrowedUsdt)"
-    ];
+      const tokenAbi = [
+        "function mint(address,uint256)",
+        "function approve(address,uint256) returns (bool)",
+        "function transfer(address,uint256) returns (bool)",
+        "function transferFrom(address,address,uint256) returns (bool)",
+        "function balanceOf(address) view returns (uint256)",
+        "function decimals() view returns (uint8)",
+      ];
 
-    const tokenAbi = [
-      "function mint(address,uint256)",
-      "function approve(address,uint256) returns (bool)",
-      "function transfer(address,uint256) returns (bool)",
-      "function transferFrom(address,address,uint256) returns (bool)",
-      "function balanceOf(address) view returns (uint256)",
-      "function decimals() view returns (uint8)"
-    ];
+      // ============ DOM references ============
+      const connectBtn = document.getElementById("connectBtn");
+      const loadBtn = document.getElementById("loadBtn");
+      const logEl = document.getElementById("log");
 
-    // ============ DOM references ============
-    const connectBtn = document.getElementById('connectBtn');
-    const loadBtn = document.getElementById('loadBtn');
-    const logEl = document.getElementById('log');
+      let provider, signer;
+      let miniLend, mockUSDT;
 
-    let provider, signer;
-    let miniLend, mockUSDT;
+      function log(msg) {
+        logEl.textContent = msg + "\n" + logEl.textContent;
+      }
 
-    function log(msg){ logEl.textContent = msg + '\n' + logEl.textContent }
+      // ============ Wallet connect ============
+      connectBtn.onclick = async () => {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+          const account = await signer.getAddress();
+          document.getElementById("account").textContent = account;
+          log("Connected: " + account);
+        } catch (e) {
+          console.error(e);
+          log("Wallet connect error");
+        }
+      };
 
-    // ============ Wallet connect ============
-    connectBtn.onclick = async () => {
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-        const account = await signer.getAddress();
-        document.getElementById('account').textContent = account;
-        log('Connected: ' + account);
-      } catch(e){ console.error(e); log('Wallet connect error') }
-    }
+      // ============ Load contracts ============
+      loadBtn.onclick = async () => {
+        try {
+          const mlAddr = document
+            .getElementById("miniLendAddress")
+            .value.trim();
+          const tkAddr = document.getElementById("tokenAddress").value.trim();
+          if (!mlAddr || !tkAddr) return alert("Enter both addresses");
+          miniLend = new ethers.Contract(
+            mlAddr,
+            miniLendAbi,
+            signer || provider
+          );
+          mockUSDT = new ethers.Contract(tkAddr, tokenAbi, signer || provider);
+          log("Contracts loaded");
+          await refreshAccountStats();
+        } catch (e) {
+          console.error(e);
+          log("Failed to load contracts");
+        }
+      };
 
-    // ============ Load contracts ============
-    loadBtn.onclick = async () => {
-      try {
-        const mlAddr = document.getElementById('miniLendAddress').value.trim();
-        const tkAddr = document.getElementById('tokenAddress').value.trim();
-        if(!mlAddr || !tkAddr) return alert('Enter both addresses');
-        miniLend = new ethers.Contract(mlAddr, miniLendAbi, signer || provider);
-        mockUSDT = new ethers.Contract(tkAddr, tokenAbi, signer || provider);
-        log('Contracts loaded');
-        await refreshAccountStats();
-      } catch(e){ console.error(e); log('Failed to load contracts') }
-    }
+      // ============ Actions ============
+      document.getElementById("stakeBtn").onclick = async () => {
+        const v = document.getElementById("stakeInput").value || "0";
+        const value = ethers.parseEther(v);
+        try {
+          const tx = await miniLend.connect(signer).stakeETH({ value });
+          await tx.wait();
+          log("Staked " + v + " ETH");
+          await refreshAccountStats();
+        } catch (e) {
+          console.error(e);
+          log("Stake failed: " + (e.error?.message || e.message));
+        }
+      };
 
-    // ============ Actions ============
-    document.getElementById('stakeBtn').onclick = async () => {
-      const v = document.getElementById('stakeInput').value || '0';
-      const value = ethers.parseEther(v);
-      try{
-        const tx = await miniLend.connect(signer).stakeETH({ value });
-        await tx.wait();
-        log('Staked ' + v + ' ETH');
-        await refreshAccountStats();
-      }catch(e){console.error(e);log('Stake failed: '+(e.error?.message||e.message))}
-    }
+      document.getElementById("borrowBtn").onclick = async () => {
+        const v = document.getElementById("borrowInput").value || "0";
+        const amount = ethers.parseUnits(v, 18);
+        try {
+          const tx = await miniLend.connect(signer).BorrowUSD(amount);
+          await tx.wait();
+          log("Borrowed " + v + " USDT");
+          await refreshAccountStats();
+        } catch (e) {
+          console.error(e);
+          log("Borrow failed: " + (e.error?.message || e.message));
+        }
+      };
 
-    document.getElementById('borrowBtn').onclick = async () => {
-      const v = document.getElementById('borrowInput').value || '0';
-      const amount = ethers.parseUnits(v, 18);
-      try{
-        const tx = await miniLend.connect(signer).BorrowUSD(amount);
-        await tx.wait();
-        log('Borrowed ' + v + ' USDT');
-        await refreshAccountStats();
-      }catch(e){console.error(e);log('Borrow failed: '+(e.error?.message||e.message))}
-    }
+      document.getElementById("approveBtn").onclick = async () => {
+        const v = document.getElementById("repayInput").value || "0";
+        const amount = ethers.parseUnits(v, 18);
+        try {
+          const tx = await mockUSDT
+            .connect(signer)
+            .approve(miniLend.target || miniLend.address, amount);
+          await tx.wait();
+          log("Approved " + v + " USDT for MiniLend");
+        } catch (e) {
+          console.error(e);
+          log("Approve failed");
+        }
+      };
 
-    document.getElementById('approveBtn').onclick = async () => {
-      const v = document.getElementById('repayInput').value || '0';
-      const amount = ethers.parseUnits(v, 18);
-      try{
-        const tx = await mockUSDT.connect(signer).approve(miniLend.target || miniLend.address, amount);
-        await tx.wait();
-        log('Approved ' + v + ' USDT for MiniLend');
-      }catch(e){console.error(e);log('Approve failed')}
-    }
+      document.getElementById("repayBtn").onclick = async () => {
+        const v = document.getElementById("repayInput").value || "0";
+        const amount = ethers.parseUnits(v, 18);
+        try {
+          const tx = await miniLend.connect(signer).RepayUSD(amount);
+          await tx.wait();
+          log("Repaid " + v + " USDT");
+          await refreshAccountStats();
+        } catch (e) {
+          console.error(e);
+          log("Repay failed: " + (e.error?.message || e.message));
+        }
+      };
 
-    document.getElementById('repayBtn').onclick = async () => {
-      const v = document.getElementById('repayInput').value || '0';
-      const amount = ethers.parseUnits(v, 18);
-      try{
-        const tx = await miniLend.connect(signer).RepayUSD(amount);
-        await tx.wait();
-        log('Repaid ' + v + ' USDT');
-        await refreshAccountStats();
-      }catch(e){console.error(e);log('Repay failed: '+(e.error?.message||e.message))}
-    }
+      document.getElementById("withdrawBtn").onclick = async () => {
+        const v = document.getElementById("withdrawInput").value || "0";
+        const amount = ethers.parseEther(v);
+        try {
+          const tx = await miniLend
+            .connect(signer)
+            .WithdrawCollateralETH(amount);
+          await tx.wait();
+          log("Withdrew " + v + " ETH");
+          await refreshAccountStats();
+        } catch (e) {
+          console.error(e);
+          log("Withdraw failed: " + (e.error?.message || e.message));
+        }
+      };
 
-    document.getElementById('withdrawBtn').onclick = async () => {
-      const v = document.getElementById('withdrawInput').value || '0';
-      const amount = ethers.parseEther(v);
-      try{
-        const tx = await miniLend.connect(signer).WithdrawCollateralETH(amount);
-        await tx.wait();
-        log('Withdrew ' + v + ' ETH');
-        await refreshAccountStats();
-      }catch(e){console.error(e);log('Withdraw failed: '+(e.error?.message||e.message))}
-    }
+      // ============ Helpers ============
+      async function refreshAccountStats() {
+        try {
+          if (!signer) return;
+          const account = await signer.getAddress();
+          if (!miniLend) return;
+          const user = await miniLend.users(account);
+          // Depending on how users() returns tuple names, adjust indexes
+          const staked = user.StakedEth || user[0];
+          const borrowed = user.BorrowedUsdt || user[1];
+          document.getElementById("stakedEth").textContent = ethers.formatEther(
+            staked || 0
+          );
+          document.getElementById("borrowedUsd").textContent =
+            ethers.formatUnits(borrowed || 0, 18);
+          const avail = await miniLend.howMuchYouCanStillBorrow(account);
+          document.getElementById("availableBorrow").textContent =
+            ethers.formatUnits(avail || 0, 18);
+          const contractUsdt = await mockUSDT.balanceOf(
+            miniLend.target || miniLend.address
+          );
+          document.getElementById("contractUsdt").textContent =
+            ethers.formatUnits(contractUsdt || 0, 18);
+          const contractEth = await provider.getBalance(
+            miniLend.target || miniLend.address
+          );
+          document.getElementById("contractEth").textContent =
+            ethers.formatEther(contractEth || 0);
+        } catch (e) {
+          console.error(e);
+        }
+      }
 
-    // ============ Helpers ============
-    async function refreshAccountStats(){
-      try{
-        if(!signer) return;
-        const account = await signer.getAddress();
-        if(!miniLend) return;
-        const user = await miniLend.users(account);
-        // Depending on how users() returns tuple names, adjust indexes
-        const staked = user.StakedEth || user[0];
-        const borrowed = user.BorrowedUsdt || user[1];
-        document.getElementById('stakedEth').textContent = ethers.formatEther(staked || 0);
-        document.getElementById('borrowedUsd').textContent = ethers.formatUnits(borrowed || 0, 18);
-        const avail = await miniLend.howMuchYouCanStillBorrow(account);
-        document.getElementById('availableBorrow').textContent = ethers.formatUnits(avail || 0, 18);
-        const contractUsdt = await mockUSDT.balanceOf(miniLend.target || miniLend.address);
-        document.getElementById('contractUsdt').textContent = ethers.formatUnits(contractUsdt || 0, 18);
-        const contractEth = await provider.getBalance(miniLend.target || miniLend.address);
-        document.getElementById('contractEth').textContent = ethers.formatEther(contractEth || 0);
-      }catch(e){console.error(e)}
-    }
-
-    // Auto-refresh every 12s
-    setInterval(()=>{ if(miniLend && signer) refreshAccountStats() }, 12000);
-  </script>
+      // Auto-refresh every 12s
+      setInterval(() => {
+        if (miniLend && signer) refreshAccountStats();
+      }, 12000);
+    </script>
+  </body>
+</html>
