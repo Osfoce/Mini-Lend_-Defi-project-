@@ -291,6 +291,8 @@ UI ready. Enter contract addresses and connect wallet.</pre
     <!-- Ethers.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
     <script>
+      import { createWalletClient, custom } from "https://esm.sh/viem";
+
       // ============ Replace these with your ABIs or small ABI fragments ============
       const miniLendAbi = [
         // minimal ABI: stakeETH(), BorrowUSD(uint256), RepayUSD(uint256), WithdrawCollateralETH(uint256), howMuchYouCanStillBorrow(address), getters
@@ -318,10 +320,25 @@ UI ready. Enter contract addresses and connect wallet.</pre
 
       let provider, signer;
       let miniLend, mockUSDT;
+      let walletClient;
 
       function log(msg) {
         logEl.textContent = msg + "\n" + logEl.textContent;
       }
+
+      /* ============ Wallet connect ============
+      connectBtn.onclick = async () => {
+        if (typeof window.ethereum !== "undefined") {
+          walletClient = createWalletClient({
+            transport: custom(window.ethereum),
+          });
+          await walletClient.requestAddresses();
+          connectBtn.innerText = "Wallet Connected!";
+        } else {
+          connectBtn.innerText = "Please install MetaMask!";
+          console.log("MetaMask is not installed!");
+        }
+      };*/
 
       // ============ Wallet connect ============
       connectBtn.onclick = async () => {
