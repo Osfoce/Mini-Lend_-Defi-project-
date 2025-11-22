@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MockUsdt is ERC20, Ownable(msg.sender) {
     address public minter;
@@ -19,7 +19,7 @@ contract MockUsdt is ERC20, Ownable(msg.sender) {
         minter = _minter;
     }
 
-    function getMinter() public view returns(address){
-        return(minter);
+    function getMinter() public view returns (address) {
+        return (minter);
     }
 }
