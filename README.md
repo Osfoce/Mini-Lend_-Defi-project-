@@ -342,11 +342,3 @@ Keep learning.
 Your progress is inspiring. 🚀🔥
 
 ---
-
-If you'd like, I can:
-
-✅ format this into a GitHub-ready `README.md`
-✅ add images / diagrams
-✅ add deploy-to-testnet section
-
-Just tell me.
