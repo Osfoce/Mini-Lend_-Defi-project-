@@ -52,7 +52,7 @@ function log(msg) {
   // keep only last 10
   if (logs.length > 10) logs.pop();
 
-  logEl.textContent = logs.join("\n");
+  logEl.textContent = logs.join("\n\n");
 }
 
 window.clearLogs = function () {
@@ -179,6 +179,65 @@ loadBtn.onclick = async () => {
 };
 
 // ============ Contract Actions ============
+
+// =========== Error Handler ============
+function extractRevertMessage(error) {
+  // viem structured error
+  if (error.shortMessage) return error.shortMessage;
+
+  if (error.cause && error.cause.reason) return error.cause.reason;
+
+  // raw JSON-RPC revert data
+  const match = /"message":"([^"]+)"/.exec(error.message);
+  if (match) return match[1];
+
+  return "Transaction reverted";
+}
+
+// ============ txHandler ============
+async function handleTx(sendTxFn, successMessage) {
+  try {
+    // 1. Send transaction
+    const hash = await sendTxFn();
+
+    // 2. Wait for mining
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    // 3. Check chain result
+    // if (receipt.status !== "success") {
+    //   const e = new Error("TX_REVERTED");
+    //   e.reverted = true;
+    //   throw e;
+    // }
+
+    if (receipt.status !== "success") {
+      throw new Error("Transaction reverted");
+    }
+
+    // ✅ SUCCESS UI
+    showPopup(successMessage + " ✅", "success");
+    log(successMessage);
+
+    return receipt;
+  } catch (error) {
+    console.error(error);
+
+    const message = extractRevertMessage(error);
+
+    showPopup(message + " ❌", "error");
+    log(message);
+    // ✅ Skip UI for internal control errors
+    // if (error.reverted) throw error;
+
+    // const msg = extractRevertMessage(error);
+
+    // showPopup(msg + " ❌", "error");
+    // log(msg);
+
+    // return null;
+  }
+}
+
 // ============ Stake ETH ============
 document.getElementById("stakeBtn").onclick = async () => {
   const eth = document.getElementById("stakeInput").value;
@@ -188,21 +247,16 @@ document.getElementById("stakeBtn").onclick = async () => {
     return;
   }
 
-  try {
-    await miniLend.write.stakeEth({
-      account,
-      value: parseEther(eth),
-    });
+  await handleTx(
+    () =>
+      miniLend.write.stakeEth({
+        account,
+        value: parseEther(eth),
+      }),
+    "Staked " + eth + " ETH"
+  );
 
-    log("Staked " + eth + " ETH");
-    showPopup("Staked " + eth + " ETH ✅", "success");
-    refreshAccountStats();
-  } catch (error) {
-    console.error(error);
-
-    let message = error.shortMessage || error.message || "Transaction failed";
-    showPopup(message + " ❌", "error");
-  }
+  refreshAccountStats();
 };
 
 // ============ Borrow Usdt ============
@@ -214,21 +268,15 @@ document.getElementById("borrowBtn").onclick = async () => {
     showPopup("Oga, borrow amount must be > 0 ❌", "error");
     return;
   }
+  await handleTx(
+    () => miniLend.write.borrowUsd([parseUnits(v, 18)], { account }),
+    "Borrowed " + v + " USDT ✅"
+  );
 
-  try {
-    await miniLend.write.borrowUsd([parseUnits(v, 18)], { account });
-
-    showPopup("Borrowed " + v + " USDT ✅", "success");
-    refreshAccountStats();
-  } catch (error) {
-    console.error(error);
-
-    let message = error.shortMessage || error.message || "Transaction failed";
-    showPopup(message + " ❌", "error");
-  }
+  refreshAccountStats();
 };
 
-// ============ Approve and Repay Usdt ============
+// ============ Approve Usdt ============
 document.getElementById("approveBtn").onclick = async () => {
   const v = document.getElementById("repayInput").value;
 
@@ -237,19 +285,14 @@ document.getElementById("approveBtn").onclick = async () => {
     return;
   }
 
-  try {
-    await mockUSDT.write.approve([miniLend.address, parseUnits(v, 18)], {
-      account,
-    });
-
-    log("Approved " + v + " USDT");
-    showPopup("Approved " + v + " USDT ✅", "success");
-  } catch (error) {
-    console.error(error);
-
-    let message = error.shortMessage || error.message || "Transaction failed";
-    showPopup(message + " ❌", "error");
-  }
+  await handleTx(
+    () =>
+      mockUSDT.write.approve([miniLend.address, parseUnits(v, 18)], {
+        account,
+      }),
+    "Approved " + v + " USDT"
+  );
+  refreshAccountStats();
 };
 
 // ============ Repay ============
@@ -262,18 +305,11 @@ document.getElementById("repayBtn").onclick = async () => {
     return;
   }
 
-  try {
-    await miniLend.write.repayUsd([parseUnits(v, 18)], { account });
-
-    log("Repaid " + v + " USDT");
-    showPopup("Repaid " + v + " USDT ✅", "success");
-    refreshAccountStats();
-  } catch (error) {
-    console.error(error);
-
-    let message = error.shortMessage || error.message || "Transaction failed";
-    showPopup(message + " ❌", "error");
-  }
+  await handleTx(
+    () => miniLend.write.repayUsd([parseUnits(v, 18)], { account }),
+    "Repaid " + v + " USDT"
+  );
+  refreshAccountStats();
 };
 
 // ============ Withdraw ETH ============
@@ -285,18 +321,11 @@ document.getElementById("withdrawBtn").onclick = async () => {
     return;
   }
 
-  try {
-    await miniLend.write.withdrawCollateralEth([parseEther(v)], { account });
-
-    log("Withdrew " + v + " ETH");
-    showPopup("Withdrew " + v + " ETH ✅", "success");
-    refreshAccountStats();
-  } catch (error) {
-    console.error(error);
-
-    let message = error.shortMessage || error.message || "Transaction failed";
-    showPopup(message + " ❌", "error");
-  }
+  await handleTx(
+    () => miniLend.write.withdrawCollateralEth([parseEther(v)], { account }),
+    "Withdrew " + v + " ETH"
+  );
+  refreshAccountStats();
 };
 
 // ============ Refresh UI ============
