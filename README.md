@@ -49,16 +49,19 @@ Verify:
 forge --version
 anvil --version
 ```
-❗❗❗ If forge is showing error, it might be using zoe forge library ans that is noe what we want.
+❗❗❗ If forge is showing error, it might be using zoe forge library and that is not what we want
 run 
 ```bash
 export PATH="$HOME/.foundry/bin:$PATH"
 ```
-to change the path ans confirm the forge with 
+to change the path and confirm the forge with 
 ```bash
 which forge
 ```
-it should show /.foundry/bin/forge ✅
+it should show 
+```bash
+/.foundry/bin/forge
+```
 
 ---
 
