@@ -49,6 +49,16 @@ Verify:
 forge --version
 anvil --version
 ```
+❗❗❗ If forge is showing error, it might be using zoe forge library ans that is noe what we want.
+run 
+```bash
+export PATH="$HOME/.foundry/bin:$PATH"
+```
+to change the path ans confirm the forge with 
+```bash
+which forge
+```
+it should show /.foundry/bin/forge ✅
 
 ---
 
@@ -108,7 +118,8 @@ Deployment is done using a Foundry deploy script.
 Run:
 
 ```bash
-forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast --env .env
+source .env
+forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast --private-key $PRIVATE_KEY
 ```
 
 If successful, the output will show something like:

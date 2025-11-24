@@ -21,6 +21,21 @@
         </div>
       </header>
 
+      <!-- MetaMask Popup Modal -->
+      <div id="walletModal" class="modal">
+        <div class="modal-content">
+          <h2>No Wallet Detected 🚨</h2>
+          <p id="walletMessage">You need MetaMask to use this DApp.</p>
+
+          <button id="installBtn">Install MetaMask</button>
+          <label>
+            <input type="checkbox" id="dontShow" /> Don't show again
+          </label>
+
+          <button id="closeBtn" class="close">Close</button>
+        </div>
+      </div>
+
       <div class="grid">
         <!-- Left column: actions & status -->
         <div>
@@ -152,6 +167,15 @@ UI ready. Enter contract addresses and connect wallet.</pre
         on a live network.
       </footer>
     </div>
+
+    <!-- Popup Message -->
+    <div id="popup" class="popup hidden">
+      <div class="popup-content">
+        <span id="popupMessage"></span>
+        <button id="popupClose">OK</button>
+      </div>
+    </div>
+
     <script type="module" src="script.js"></script>
   </body>
 </html>

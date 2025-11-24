@@ -133,3 +133,84 @@ footer {
     height: 44px;
   }
 }
+/* Popup section for metamask install */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+
+.modal-content {
+  background: rgb(58, 42, 126);
+  padding: 20px;
+  width: 300px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.close {
+  background: gray;
+}
+
+/* Popup overlay */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Hidden state */
+.hidden {
+  display: none;
+}
+
+/* Popup box */
+.popup-content {
+  background: rgb(20, 34, 80);
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  text-align: center;
+  font-family: Arial;
+  animation: popupIn 0.3s ease-in-out;
+
+  /* These 3 lines to fix the "OK" layout */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+@keyframes popupIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Success & Error colors */
+.popup-success {
+  border-left: 6px solid green;
+}
+
+.popup-error {
+  border-left: 6px solid red;
+}

@@ -9,35 +9,25 @@ import {
   getContract,
 } from "https://esm.sh/viem";
 import { http } from "https://esm.sh/viem";
+import { MiniLendEventListener } from "./MiniLendEventListener.js";
 //import { mainnet } from "https://esm.sh/viem/chains";
 
 // ============ ABI ============
 const miniLendAbi = await fetch("./abi/MiniLend.json").then((r) => r.json());
 const mockUsdtAbi = await fetch("./abi/MockUsdt.json").then((r) => r.json());
 
-// import miniLendAbi from "./abi/MiniLendAbi";
-// import mockUsdtAbi from "./abi/MockUsdtAbi";
-
 // ============ DOM elements ============
 const connectBtn = document.getElementById("connectBtn");
 const loadBtn = document.getElementById("loadBtn");
 const logEl = document.getElementById("log");
+let mlAddr;
+let tkAddr;
 
 let walletClient;
 let publicClient;
 let account;
 let miniLend;
 let mockUSDT;
-
-// helper log
-function log(msg) {
-  logEl.textContent = msg + "\n" + logEl.textContent;
-}
-
-// shorten address
-function shortenAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-}
 
 // ============ Anvil Local Blockchain ============
 const anvil = {
@@ -50,11 +40,88 @@ const anvil = {
   },
 };
 
+const rpcUrl = anvil.rpcUrls.default.http[0];
+const miniLendListener = new MiniLendEventListener(rpcUrl, mlAddr, anvil);
+// Start listening to events
+miniLendListener.start();
+
+// helper log
+function log(msg) {
+  logEl.textContent = msg + "\n" + logEl.textContent;
+}
+
+// shorten address
+function shortenAddress(addr) {
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
+
+// testing mode: always reset
+localStorage.setItem("hideMetaMaskWarning", "false");
+
+// ========\wallet Detection and connection ============
+function detectWallet() {
+  const hideWarning = localStorage.getItem("hideMetaMaskWarning");
+  if (hideWarning === "true") return;
+
+  if (!window.ethereum) {
+    const modal = document.getElementById("walletModal");
+    const message = document.getElementById("walletMessage");
+    const installBtn = document.getElementById("installBtn");
+
+    // detect mobile
+    const isMobile = /android|iphone|ipad|mobile/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      message.textContent = "MetaMask Mobile is required to use this DApp.";
+      installBtn.onclick = () =>
+        window.open("https://metamask.app.link/", "_blank");
+    } else {
+      message.textContent =
+        "MetaMask browser extension is required to use this DApp.";
+      installBtn.onclick = () =>
+        window.open(
+          "https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn",
+          "_blank"
+        );
+    }
+
+    modal.style.display = "flex";
+
+    document.getElementById("closeBtn").onclick = () => {
+      modal.style.display = "none";
+
+      if (document.getElementById("dontShow").checked) {
+        localStorage.setItem("hideMetaMaskWarning", "true");
+      }
+    };
+  }
+}
+
+// ============ PopUp function ============
+function showPopup(message, type = "info") {
+  const popup = document.getElementById("popup");
+  const popupMessage = document.getElementById("popupMessage");
+  const popupContent = document.querySelector(".popup-content");
+
+  popupMessage.textContent = message;
+
+  // reset styles
+  popupContent.classList.remove("popup-success", "popup-error");
+
+  if (type === "success") popupContent.classList.add("popup-success");
+  if (type === "error") popupContent.classList.add("popup-error");
+
+  popup.classList.remove("hidden");
+}
+
+document.getElementById("popupClose").onclick = () => {
+  document.getElementById("popup").classList.add("hidden");
+};
+
+// ============ Connect Wallet ============
 connectBtn.onclick = async () => {
   if (!window.ethereum) {
-    log("No Wallet Detected");
-    document.getElementById("account").textContent =
-      ".......WalletClient not found !!!  ";
+    detectWallet();
     return;
   }
 
@@ -66,9 +133,10 @@ connectBtn.onclick = async () => {
 
     publicClient = createPublicClient({
       chain: anvil,
-      transport: http("http://127.0.0.1:8545"),
+      transport: http(rpcUrl),
     });
 
+    console.log(rpcUrl);
     const addresses = await walletClient.requestAddresses();
     account = addresses[0];
     document.getElementById("account").textContent = "Connected";
@@ -76,13 +144,14 @@ connectBtn.onclick = async () => {
     log("Connected wallet: " + account);
   } catch (error) {
     log("Error: " + error.message);
+    showPopup("Error: " + error.message, "error");
   }
 };
 
 // ============ Load Contracts ============
 loadBtn.onclick = async () => {
-  const mlAddr = document.getElementById("miniLendAddress").value.trim();
-  const tkAddr = document.getElementById("tokenAddress").value.trim();
+  mlAddr = document.getElementById("miniLendAddress").value.trim();
+  tkAddr = document.getElementById("tokenAddress").value.trim();
 
   miniLend = getContract({
     address: mlAddr,
@@ -110,6 +179,7 @@ document.getElementById("stakeBtn").onclick = async () => {
   });
 
   log("Staked " + eth + " ETH");
+  showPopup("Staked " + eth + " ETH ✅", "success");
   refreshAccountStats();
 };
 
@@ -118,6 +188,7 @@ document.getElementById("borrowBtn").onclick = async () => {
   await miniLend.write.borrowUsd([parseUnits(v, 18)], { account });
 
   log("Borrowed " + v + " USDT");
+  showPopup("Borrowed " + v + " USDT ✅", "success");
   refreshAccountStats();
 };
 
@@ -128,6 +199,7 @@ document.getElementById("approveBtn").onclick = async () => {
   });
 
   log("Approved " + v + " USDT");
+  showPopup("Approved " + v + " USDT ✅", "success");
 };
 
 document.getElementById("repayBtn").onclick = async () => {
@@ -136,6 +208,7 @@ document.getElementById("repayBtn").onclick = async () => {
   await miniLend.write.repayUsd([parseUnits(v, 18)], { account });
 
   log("Repaid " + v + " USDT");
+  showPopup("Repaid " + v + " USDT ✅", "success");
   refreshAccountStats();
 };
 
@@ -144,6 +217,7 @@ document.getElementById("withdrawBtn").onclick = async () => {
   await miniLend.write.withdrawCollateralEth([parseEther(v)], { account });
 
   log("Withdrew " + v + " ETH");
+  showPopup("Withdrew " + v + " ETH ✅", "success");
   refreshAccountStats();
 };
 
