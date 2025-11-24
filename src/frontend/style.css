@@ -214,3 +214,9 @@ footer {
 .popup-error {
   border-left: 6px solid red;
 }
+
+#log {
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

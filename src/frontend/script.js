@@ -22,6 +22,7 @@ const loadBtn = document.getElementById("loadBtn");
 const logEl = document.getElementById("log");
 let mlAddr;
 let tkAddr;
+let logs = [];
 
 let walletClient;
 let publicClient;
@@ -45,10 +46,19 @@ const miniLendListener = new MiniLendEventListener(rpcUrl, mlAddr, anvil);
 // Start listening to events
 miniLendListener.start();
 
-// helper log
 function log(msg) {
-  logEl.textContent = msg + "\n" + logEl.textContent;
+  logs.unshift(msg);
+
+  // keep only last 10
+  if (logs.length > 10) logs.pop();
+
+  logEl.textContent = logs.join("\n");
 }
+
+window.clearLogs = function () {
+  logs = [];
+  logEl.textContent = "";
+};
 
 // shorten address
 function shortenAddress(addr) {
@@ -136,7 +146,6 @@ connectBtn.onclick = async () => {
       transport: http(rpcUrl),
     });
 
-    console.log(rpcUrl);
     const addresses = await walletClient.requestAddresses();
     account = addresses[0];
     document.getElementById("account").textContent = "Connected";
@@ -170,55 +179,124 @@ loadBtn.onclick = async () => {
 };
 
 // ============ Contract Actions ============
+// ============ Stake ETH ============
 document.getElementById("stakeBtn").onclick = async () => {
   const eth = document.getElementById("stakeInput").value;
 
-  await miniLend.write.stakeEth({
-    account,
-    value: parseEther(eth),
-  });
+  if (!eth || Number(eth) <= 0) {
+    showPopup("Oga, Stake collateral must be > 0 ❌", "error");
+    return;
+  }
 
-  log("Staked " + eth + " ETH");
-  showPopup("Staked " + eth + " ETH ✅", "success");
-  refreshAccountStats();
+  try {
+    await miniLend.write.stakeEth({
+      account,
+      value: parseEther(eth),
+    });
+
+    log("Staked " + eth + " ETH");
+    showPopup("Staked " + eth + " ETH ✅", "success");
+    refreshAccountStats();
+  } catch (error) {
+    console.error(error);
+
+    let message = error.shortMessage || error.message || "Transaction failed";
+    showPopup(message + " ❌", "error");
+  }
 };
+
+// ============ Borrow Usdt ============
 
 document.getElementById("borrowBtn").onclick = async () => {
   const v = document.getElementById("borrowInput").value;
-  await miniLend.write.borrowUsd([parseUnits(v, 18)], { account });
 
-  log("Borrowed " + v + " USDT");
-  showPopup("Borrowed " + v + " USDT ✅", "success");
-  refreshAccountStats();
+  if (!v || Number(v) <= 0) {
+    showPopup("Oga, borrow amount must be > 0 ❌", "error");
+    return;
+  }
+
+  try {
+    await miniLend.write.borrowUsd([parseUnits(v, 18)], { account });
+
+    showPopup("Borrowed " + v + " USDT ✅", "success");
+    refreshAccountStats();
+  } catch (error) {
+    console.error(error);
+
+    let message = error.shortMessage || error.message || "Transaction failed";
+    showPopup(message + " ❌", "error");
+  }
 };
 
+// ============ Approve and Repay Usdt ============
 document.getElementById("approveBtn").onclick = async () => {
   const v = document.getElementById("repayInput").value;
-  await mockUSDT.write.approve([miniLend.address, parseUnits(v, 18)], {
-    account,
-  });
 
-  log("Approved " + v + " USDT");
-  showPopup("Approved " + v + " USDT ✅", "success");
+  if (!v || Number(v) <= 0) {
+    showPopup("Approved amount must be > 0 ❌", "error");
+    return;
+  }
+
+  try {
+    await mockUSDT.write.approve([miniLend.address, parseUnits(v, 18)], {
+      account,
+    });
+
+    log("Approved " + v + " USDT");
+    showPopup("Approved " + v + " USDT ✅", "success");
+  } catch (error) {
+    console.error(error);
+
+    let message = error.shortMessage || error.message || "Transaction failed";
+    showPopup(message + " ❌", "error");
+  }
 };
+
+// ============ Repay ============
 
 document.getElementById("repayBtn").onclick = async () => {
   const v = document.getElementById("repayInput").value;
 
-  await miniLend.write.repayUsd([parseUnits(v, 18)], { account });
+  if (!v || Number(v) <= 0) {
+    showPopup("Repay amount must be > 0 ❌", "error");
+    return;
+  }
 
-  log("Repaid " + v + " USDT");
-  showPopup("Repaid " + v + " USDT ✅", "success");
-  refreshAccountStats();
+  try {
+    await miniLend.write.repayUsd([parseUnits(v, 18)], { account });
+
+    log("Repaid " + v + " USDT");
+    showPopup("Repaid " + v + " USDT ✅", "success");
+    refreshAccountStats();
+  } catch (error) {
+    console.error(error);
+
+    let message = error.shortMessage || error.message || "Transaction failed";
+    showPopup(message + " ❌", "error");
+  }
 };
 
+// ============ Withdraw ETH ============
 document.getElementById("withdrawBtn").onclick = async () => {
   const v = document.getElementById("withdrawInput").value;
-  await miniLend.write.withdrawCollateralEth([parseEther(v)], { account });
 
-  log("Withdrew " + v + " ETH");
-  showPopup("Withdrew " + v + " ETH ✅", "success");
-  refreshAccountStats();
+  if (!v || Number(v) <= 0) {
+    showPopup("Amount must be > 0 ❌", "error");
+    return;
+  }
+
+  try {
+    await miniLend.write.withdrawCollateralEth([parseEther(v)], { account });
+
+    log("Withdrew " + v + " ETH");
+    showPopup("Withdrew " + v + " ETH ✅", "success");
+    refreshAccountStats();
+  } catch (error) {
+    console.error(error);
+
+    let message = error.shortMessage || error.message || "Transaction failed";
+    showPopup(message + " ❌", "error");
+  }
 };
 
 // ============ Refresh UI ============

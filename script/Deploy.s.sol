@@ -26,6 +26,4 @@ contract Deploy is Script {
 
         return (miniLend, mock);
     }
-    // To run deployment script:
-    //
 }
