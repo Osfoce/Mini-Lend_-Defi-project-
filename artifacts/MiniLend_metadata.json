@@ -1,0 +1,415 @@
+{
+	"compiler": {
+		"version": "0.8.31+commit.fd3a2265"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_mockusdtAddress",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "availableToBorrow",
+						"type": "uint256"
+					}
+				],
+				"name": "BorrowLimitExceeded",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "balance",
+						"type": "uint256"
+					}
+				],
+				"name": "BorrowedAmountNotFullyRepaid",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "InvalidAddress",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAmount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NoCollateralProvided",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NoUsdtBorrowed",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "collateralBalance",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "userInput",
+						"type": "uint256"
+					}
+				],
+				"name": "NotEnoughCollateral",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountPaid",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expectedAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "OverPaymentNotSupported",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "ETHCollateralWithdrawn",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "ethAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "EthStaked",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "usdAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "USDBorrowed",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "usdAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "USDRepaid",
+				"type": "event"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "fallback"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "borrowUsd",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getContractEthBal",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getContractUsdBal",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "mockusdt",
+				"outputs": [
+					{
+						"internalType": "contract MockUsdt",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "repayUsd",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "stakeEth",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "users",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "stakedEth",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "borrowedUsdt",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "withdrawCollateralEth",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"src/contracts/MiniLend.sol": "MiniLend"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/access/Ownable.sol": {
+			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
+			"keccak256": "0x19fdfb0f3b89a230e7dbd1cf416f1a6b531a3ee5db4da483f946320fc74afc0e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://3490d794728f5bfecb46820431adaff71ba374141545ec20b650bb60353fac23",
+				"dweb:/ipfs/QmPsfxjVpMcZbpE7BH93DzTpEaktESigEw4SmDzkXuJ4WR"
+			]
+		},
+		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
+				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+			"keccak256": "0x86b7b71a6aedefdad89b607378eeab1dcc5389b9ea7d17346d08af01d7190994",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1dc2db8d94a21eac8efe03adf574c419b08536409b416057a2b5b95cb772c43c",
+				"dweb:/ipfs/QmZfqJCKVU1ScuX2A7s8WZdQEaikwJbDH5JBrBdKTUT4Gu"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+			"keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://5282825a626cfe924e504274b864a652b0023591fa66f06a067b25b51ba9b303",
+				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+			"keccak256": "0xd6fa4088198f04eef10c5bce8a2f4d60554b7ec4b987f684393c01bf79b94d9f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f95ee0bbd4dd3ac730d066ba3e785ded4565e890dbec2fa7d3b9fe3bad9d0d6e",
+				"dweb:/ipfs/QmSLr6bHkPFWT7ntj34jmwfyskpwo97T9jZUrk5sz3sdtR"
+			]
+		},
+		"@openzeppelin/contracts/utils/Address.sol": {
+			"keccak256": "0x6d0ae6e206645341fd122d278c2cb643dea260c190531f2f3f6a0426e77b00c0",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://032d1201d839435be2c85b72e33206b3ea980c569d6ebf7fa57d811ab580a82f",
+				"dweb:/ipfs/QmeqQjAtMvdZT2tG7zm39itcRJkuwu8AEReK6WRnLJ18DD"
+			]
+		},
+		"@openzeppelin/contracts/utils/Context.sol": {
+			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+			]
+		},
+		"@openzeppelin/contracts/utils/Errors.sol": {
+			"keccak256": "0x6afa713bfd42cf0f7656efa91201007ac465e42049d7de1d50753a373648c123",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ba1d02f4847670a1b83dec9f7d37f0b0418d6043447b69f3a29a5f9efc547fcf",
+				"dweb:/ipfs/QmQ7iH2keLNUKgq2xSWcRmuBE5eZ3F5whYAkAGzCNNoEWB"
+			]
+		},
+		"src/contracts/MiniLend.sol": {
+			"keccak256": "0x78484d632185e9eadc67e66c10ba83da7b6db6276e4c635ae9e277815f3b3de5",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://893c7a27a2639db534a504ab9767d4655a0983c86192eb3ec6dc6883886083bc",
+				"dweb:/ipfs/QmdpFQFXvGKWdarFW7uMhZqeVtFfck2vw8dxYA4brNLYVr"
+			]
+		},
+		"src/contracts/MockUsdt.sol": {
+			"keccak256": "0x576a1a9cd093991013fd057bd978da5f406c1460c0b5995b37f176fbde6e70b7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a53aba1cd9f79eeb26a6cdc0c45c231d9e35549ad99c027a89dde8c1dd466686",
+				"dweb:/ipfs/QmP2rt6169MYx8wna77XkFgWbU4zyaBcX1pG9T4Rp91D8a"
+			]
+		}
+	},
+	"version": 1
+}

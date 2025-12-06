@@ -1,0 +1,843 @@
+{
+	"compiler": {
+		"version": "0.8.31+commit.fd3a2265"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_usdToken",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_priceOracle",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "requested",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "available",
+						"type": "uint256"
+					}
+				],
+				"name": "BorrowLimitExceeded",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "outstanding",
+						"type": "uint256"
+					}
+				],
+				"name": "BorrowedAmountNotFullyRepaid",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "required",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "available",
+						"type": "uint256"
+					}
+				],
+				"name": "InsufficientPoolFunds",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "InvalidAddress",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAmount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "LoanNotFound",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NoCollateralProvided",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "available",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "requested",
+						"type": "uint256"
+					}
+				],
+				"name": "NotEnoughCollateral",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "healthFactor",
+						"type": "uint256"
+					}
+				],
+				"name": "NotLiquidatable",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "paid",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "outstanding",
+						"type": "uint256"
+					}
+				],
+				"name": "OverPaymentNotSupported",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "OwnableInvalidOwner",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "OwnableUnauthorizedAccount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "TransferFailed",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "UnsupportedToken",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "ethAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "ETHCollateralWithdrawn",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "ethAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "EthStaked",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "liquidator",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "borrower",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "repayAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "seizedEth",
+						"type": "uint256"
+					}
+				],
+				"name": "Liquidation",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "newBonusBps",
+						"type": "uint256"
+					}
+				],
+				"name": "LiquidationBonusUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "newLtv",
+						"type": "uint256"
+					}
+				],
+				"name": "LtvUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOracle",
+						"type": "address"
+					}
+				],
+				"name": "OracleUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "usdAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "USDBorrowed",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "usdAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "USDRepaid",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newToken",
+						"type": "address"
+					}
+				],
+				"name": "USDTokenUpdated",
+				"type": "event"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "fallback"
+			},
+			{
+				"inputs": [],
+				"name": "BPS_DENOMINATOR",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "PCT_DENOMINATOR",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "WAD",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "availableToBorrow",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "borrowUsd",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "collateralValueUsd",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "healthFactorWad",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "borrower",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "repayAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "liquidate",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "liquidationBonusBps",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "liquidationThresholdPct",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ltvPct",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "maxBorrowAllowed",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "priceOracle",
+				"outputs": [
+					{
+						"internalType": "contract IPriceOracle",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "repayUsd",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_bonusBps",
+						"type": "uint256"
+					}
+				],
+				"name": "setLiquidationBonus",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_ltvPct",
+						"type": "uint256"
+					}
+				],
+				"name": "setLtv",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_oracle",
+						"type": "address"
+					}
+				],
+				"name": "setPriceOracle",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_usd",
+						"type": "address"
+					}
+				],
+				"name": "setUsdToken",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "stakeEth",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "transferOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "usdToken",
+				"outputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "users",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "stakedEth",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "borrowedUsd",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "ethAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "withdrawCollateralEth",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		],
+		"devdoc": {
+			"errors": {
+				"OwnableInvalidOwner(address)": [
+					{
+						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
+					}
+				],
+				"OwnableUnauthorizedAccount(address)": [
+					{
+						"details": "The caller account is not authorized to perform an operation."
+					}
+				]
+			},
+			"kind": "dev",
+			"methods": {
+				"owner()": {
+					"details": "Returns the address of the current owner."
+				},
+				"renounceOwnership()": {
+					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"transferOwnership(address)": {
+					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"availableToBorrow(address)": {
+					"notice": "Returns available to borrow right now"
+				},
+				"borrowUsd(uint256)": {
+					"notice": "Borrow USD up to LTV limit. USD amounts are 18-decimal."
+				},
+				"collateralValueUsd(address)": {
+					"notice": "Returns collateral value in USD (18 decimals)"
+				},
+				"healthFactorWad(address)": {
+					"notice": "Returns health factor scaled by WAD (>=WAD => healthy)"
+				},
+				"liquidate(address,uint256)": {
+					"notice": "Liquidate an undercollateralized position by repaying part or all of the borrow. liquidator provides USD (transferFrom) to repay `repayAmount`. They receive ETH collateral plus bonus."
+				},
+				"maxBorrowAllowed(address)": {
+					"notice": "Returns max borrow allowed (USD 18 decimals)"
+				},
+				"repayUsd(uint256)": {
+					"notice": "Repay borrowed USD. Overpayment not allowed."
+				},
+				"stakeEth()": {
+					"notice": "Stake ETH as collateral"
+				},
+				"withdrawCollateralEth(uint256)": {
+					"notice": "Withdraw collateral (partial or full) if health remains >= 1 after withdrawal"
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"src/contracts/mini.sol": "MiniLendRefactored"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/access/Ownable.sol": {
+			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+			]
+		},
+		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
+				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+			"keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://5282825a626cfe924e504274b864a652b0023591fa66f06a067b25b51ba9b303",
+				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
+			]
+		},
+		"@openzeppelin/contracts/utils/Address.sol": {
+			"keccak256": "0x6d0ae6e206645341fd122d278c2cb643dea260c190531f2f3f6a0426e77b00c0",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://032d1201d839435be2c85b72e33206b3ea980c569d6ebf7fa57d811ab580a82f",
+				"dweb:/ipfs/QmeqQjAtMvdZT2tG7zm39itcRJkuwu8AEReK6WRnLJ18DD"
+			]
+		},
+		"@openzeppelin/contracts/utils/Context.sol": {
+			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+			]
+		},
+		"@openzeppelin/contracts/utils/Errors.sol": {
+			"keccak256": "0x6afa713bfd42cf0f7656efa91201007ac465e42049d7de1d50753a373648c123",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ba1d02f4847670a1b83dec9f7d37f0b0418d6043447b69f3a29a5f9efc547fcf",
+				"dweb:/ipfs/QmQ7iH2keLNUKgq2xSWcRmuBE5eZ3F5whYAkAGzCNNoEWB"
+			]
+		},
+		"src/contracts/mini.sol": {
+			"keccak256": "0x15417cf80802d3a1e6ce5b458bfeb0b6b274bc847a1b2fa3ebfa8cdaa721bf03",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d2d3e941b44161fcb455cfb53a417d2c697ce7fcfd0aae374b54e7a5d5f3b417",
+				"dweb:/ipfs/QmUVzXXWDaqv8N52ECKnrtoBcM4dGKf2u3mRqyWm6DJ4DE"
+			]
+		}
+	},
+	"version": 1
+}
