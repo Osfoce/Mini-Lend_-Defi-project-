@@ -104,6 +104,11 @@
 			},
 			{
 				"inputs": [],
+				"name": "InvalidCloseFactor",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "InvalidDecimals",
 				"type": "error"
 			},
@@ -180,6 +185,16 @@
 					}
 				],
 				"name": "OwnableUnauthorizedAccount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "PositionHealthy",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "ReentrancyGuardReentrantCall",
 				"type": "error"
 			},
 			{
@@ -306,6 +321,37 @@
 					}
 				],
 				"name": "EthStaked",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "liquidator",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "borrower",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "repayAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "seizedCollateral",
+						"type": "uint256"
+					}
+				],
+				"name": "Liquidation",
 				"type": "event"
 			},
 			{
@@ -507,6 +553,19 @@
 				"name": "borrowAsset",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ethAddress",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -884,12 +943,23 @@
 					{
 						"details": "The caller account is not authorized to perform an operation."
 					}
+				],
+				"ReentrancyGuardReentrantCall()": [
+					{
+						"details": "Unauthorized reentrant call."
+					}
 				]
 			},
 			"kind": "dev",
 			"methods": {
 				"getUser(address)": {
 					"details": "External callers cannot get storage references, so return memory version."
+				},
+				"liquidate(address,uint256)": {
+					"params": {
+						"borrower": "The borrower to liquidate.",
+						"repayAmount": "The amount (in borrowed token units, 18-dec assumed) the liquidator will repay on behalf of the borrower. Requirements: - borrower's position must exist and be below the liquidation threshold - repayAmount is capped by CLOSE_FACTOR_BPS of outstanding borrowedAssetAmount - liquidator must `approve` repay token to this contract"
+					}
 				},
 				"owner()": {
 					"details": "Returns the address of the current owner."
@@ -911,6 +981,9 @@
 				},
 				"getUser(address)": {
 					"notice": "Returns user info as a memory copy for frontend/UI consumption."
+				},
+				"liquidate(address,uint256)": {
+					"notice": "Liquidate an undercollateralized position."
 				},
 				"repayAsset(address,uint256)": {
 					"notice": "Repay borrowed token. amount is token units (18-dec)"
@@ -938,6 +1011,14 @@
 		"remappings": []
 	},
 	"sources": {
+		"/lib/solmate/src/utils/FixedPointMathLib.sol": {
+			"keccak256": "0x1b62af9baf5b8e991ed7531bc87f45550ba9d61e8dbff5caf237ccaf3a3fd843",
+			"license": "AGPL-3.0-only",
+			"urls": [
+				"bzz-raw://b7b38b977c5305b18ceefbeed4c9ceaaaefa419b520de62de6604ea661f8c0a9",
+				"dweb:/ipfs/QmecMRzgfMyDVa2pvBqMMDLYBappaj7Aa3qcMoQYEQrhWi"
+			]
+		},
 		"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
 			"keccak256": "0x257a8d28fa83d3d942547c8e129ef465e4b5f3f31171e7be4739a4c98da6b4f0",
 			"license": "MIT",
@@ -952,14 +1033,6 @@
 			"urls": [
 				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
 				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
-			]
-		},
-		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
-			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
-				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
 			]
 		},
 		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
@@ -978,14 +1051,6 @@
 				"dweb:/ipfs/QmSLr6bHkPFWT7ntj34jmwfyskpwo97T9jZUrk5sz3sdtR"
 			]
 		},
-		"@openzeppelin/contracts/utils/Address.sol": {
-			"keccak256": "0x6d0ae6e206645341fd122d278c2cb643dea260c190531f2f3f6a0426e77b00c0",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://032d1201d839435be2c85b72e33206b3ea980c569d6ebf7fa57d811ab580a82f",
-				"dweb:/ipfs/QmeqQjAtMvdZT2tG7zm39itcRJkuwu8AEReK6WRnLJ18DD"
-			]
-		},
 		"@openzeppelin/contracts/utils/Context.sol": {
 			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
 			"license": "MIT",
@@ -994,20 +1059,28 @@
 				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
 			]
 		},
-		"@openzeppelin/contracts/utils/Errors.sol": {
-			"keccak256": "0x6afa713bfd42cf0f7656efa91201007ac465e42049d7de1d50753a373648c123",
+		"lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol": {
+			"keccak256": "0xa516cbf1c7d15d3517c2d668601ce016c54395bf5171918a14e2686977465f53",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://ba1d02f4847670a1b83dec9f7d37f0b0418d6043447b69f3a29a5f9efc547fcf",
-				"dweb:/ipfs/QmQ7iH2keLNUKgq2xSWcRmuBE5eZ3F5whYAkAGzCNNoEWB"
+				"bzz-raw://1e1d079e8edfb58efd23a311e315a4807b01b5d1cf153f8fa2d0608b9dec3e99",
+				"dweb:/ipfs/QmTBExeX2SDTkn5xbk5ssbYSx7VqRp9H4Ux1CY4uQM4b9N"
+			]
+		},
+		"lib/openzeppelin-contracts/contracts/utils/StorageSlot.sol": {
+			"keccak256": "0xcf74f855663ce2ae00ed8352666b7935f6cddea2932fdf2c3ecd30a9b1cd0e97",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://9f660b1f351b757dfe01438e59888f31f33ded3afcf5cb5b0d9bf9aa6f320a8b",
+				"dweb:/ipfs/QmarDJ5hZEgBtCmmrVzEZWjub9769eD686jmzb2XpSU1cM"
 			]
 		},
 		"src/contracts/MiniLend.sol": {
-			"keccak256": "0x4d002065598d5d1aebc018538bf53a6018ee6dc158868493d2357f14cfc794aa",
+			"keccak256": "0xfc051d0f6cf6f189d38cf784edc3b142874b682314181b985c014d79f3cc1931",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://15ba6c7d5d2db528810736810490e90ab3696d4dbfd9980229dd75e7ad59fb54",
-				"dweb:/ipfs/QmbYfonPJkoe8aR3k27j9YmmdeP4tCvEwibkY7wcqnwYgk"
+				"bzz-raw://a83377d52b1deb2d4317361bea0073c84829f52e94471403b1723a2cf3308050",
+				"dweb:/ipfs/QmYbNsLueB4A8ASaJNqu9ntNJQLnUwFq2nXV8VJqsmmjC1"
 			]
 		}
 	},
