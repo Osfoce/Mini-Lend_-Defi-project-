@@ -484,8 +484,7 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         if (address(this).balance < amount)
             revert InsufficientPoolBalance(address(this).balance, amount);
 
-        (bool success, ) = address(msg.sender).call{value: amount}("");
-        if (!success) revert TransferFailed(address(0), msg.sender, amount);
+        _sendEth(msg.sender, amount);
 
         // update state
         user.stakedAmount -= amount;
