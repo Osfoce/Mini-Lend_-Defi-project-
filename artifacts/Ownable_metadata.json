@@ -130,7 +130,11 @@
 			"enabled": false,
 			"runs": 200
 		},
-		"remappings": []
+		"remappings": [
+			":@chainlink/=node_modules/@chainlink/",
+			":@openzeppelin/=lib/openzeppelin-contracts/contracts/",
+			":@solmate/=/lib/solmate/"
+		]
 	},
 	"sources": {
 		".deps/npm/@openzeppelin/contracts/access/Ownable.sol": {

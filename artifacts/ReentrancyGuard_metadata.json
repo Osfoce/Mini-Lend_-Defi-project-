@@ -44,7 +44,11 @@
 			"enabled": false,
 			"runs": 200
 		},
-		"remappings": []
+		"remappings": [
+			":@chainlink/=node_modules/@chainlink/",
+			":@oppenzeppelin/=lib/openzeppelin-contracts",
+			":@solmate/=/lib/solmate/"
+		]
 	},
 	"sources": {
 		"lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol": {

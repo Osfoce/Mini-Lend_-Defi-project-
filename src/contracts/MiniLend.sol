@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.20;
 
-import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "/lib/solmate/src/utils/FixedPointMathLib.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     using FixedPointMathLib for uint256;
@@ -34,10 +34,10 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     error InvalidAmount();
     error PositionHealthy();
     error NoActivePosition();
-    error BadLtv(uint256 ltv);
+    error Badltv(uint256 ltv);
 
     /* ============ Events ============ */
-    event LtvUpdated(uint256 newLtv);
+    event ltvUpdated(uint256 newltv);
     event BonusUpdated(uint256 newBonus);
     event TokenRevoked(address indexed token);
     event NewTokenApproved(address indexed token);
@@ -58,8 +58,8 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     struct User {
         address stakedAsset;
         uint256 stakedAmount;
-        address borrowedAsset;
-        uint256 borrowedAssetAmount;
+        address debtAsset;
+        uint256 debtAmount;
     }
 
     /* ============ State ============ */
@@ -69,35 +69,35 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     // approved tokens that the pool can lend
     mapping(address => bool) public approvedTokens;
     mapping(address => uint256) public tokenIndex; // index in approvedTokenList
-    address[] public approvedTokenList;
-    address public constant ethAddress =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // ETH address representation
 
-    uint256 private LTV = 5000; // 50% (5000 bps)
-    uint256 private CLOSE_FACTOR = 5000; // 50% (5000 bps)
-    uint256 private LIQUIDATION_BONUS = 500; // 5% (500 bps)
+    address[] public approvedTokenList;
+    uint256 private ltv = 5000; // 50% (5000 bps)
+    uint256 private closeFactor = 5000; // 50% (5000 bps)
+    uint256 private liquidationBonus = 500; // 5% (500 bps)
     uint256 private constant WAD = 1e18;
     uint256 private constant PCT_DENOMINATOR = 10000; // for percentage calculations
     uint256 private constant LIQUIDATION_THRESHOLD = 7500;
+    address public constant ETH_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // ETH address representation
 
     // =========== Modifiers ============
     modifier onlyApprovedToken(address token) {
-        if (!approvedTokens[token]) revert TokenNotApproved(token);
+        _onlyApprovedToken(token);
         _;
     }
 
     modifier nonZeroAddress(address addr) {
-        if (addr == address(0)) revert InvalidAddress(addr);
+        _invalidAddrress(addr);
         _;
     }
 
     modifier nonZeroAmount(uint256 amount) {
-        if (amount == 0) revert InvalidAmount();
+        _invalidValue(amount);
         _;
     }
 
     modifier onlyActive(address borrower) {
-        if (!_activePosition(borrower)) revert NoActivePosition();
+        _onlyActive(borrower);
         _;
     }
 
@@ -115,18 +115,18 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         emit PriceFeedUpdated(token, feed);
     }
 
-    function setLtv(uint256 _ltv) external onlyOwner nonZeroAmount(_ltv) {
+    function setltv(uint256 _ltv) external onlyOwner nonZeroAmount(_ltv) {
         if (_ltv == 0 || _ltv > PCT_DENOMINATOR || _ltv > LIQUIDATION_THRESHOLD)
-            revert BadLtv(_ltv);
-        LTV = _ltv;
-        emit LtvUpdated(_ltv);
+            revert Badltv(_ltv);
+        ltv = _ltv;
+        emit ltvUpdated(_ltv);
     }
 
     function setLiquidationBonus(
         uint256 _bonus
     ) external onlyOwner nonZeroAmount(_bonus) {
         if (_bonus > PCT_DENOMINATOR) revert BadBonus(_bonus);
-        LIQUIDATION_BONUS = _bonus;
+        liquidationBonus = _bonus;
         emit BonusUpdated(_bonus);
     }
 
@@ -197,6 +197,8 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
 
         uint8 decimals = feed.decimals();
         if (decimals > 18) revert InvalidDecimals();
+        // casting to uint256 is safe because price is validated to be > 0 above
+        // forge-lint: disable-next-line(unsafe-typecast)
         return uint256(price) * 10 ** (18 - decimals);
     }
 
@@ -209,7 +211,9 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         if (price == 0) return 0;
 
         // get token decimals
-        uint8 decimals = token == ethAddress ? 18 : IERC20Metadata(token).decimals();
+        uint8 decimals = token == ETH_ADDRESS
+            ? 18
+            : IERC20Metadata(token).decimals();
 
         if (decimals > 18) revert InvalidDecimals();
 
@@ -238,17 +242,12 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         returns (
             address stakedAsset,
             uint256 stakedAmount,
-            address borrowedAsset,
-            uint256 borrowedAssetAmount
+            address debtAsset,
+            uint256 debtAmount
         )
     {
         User storage u = users[user];
-        return (
-            u.stakedAsset,
-            u.stakedAmount,
-            u.borrowedAsset,
-            u.borrowedAssetAmount
-        );
+        return (u.stakedAsset, u.stakedAmount, u.debtAsset, u.debtAmount);
     }
 
     function getContractEthBalance() external view returns (uint256) {
@@ -272,7 +271,7 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         if (msg.value == 0) revert NoCollateralProvided();
         User storage user = _user(msg.sender);
         user.stakedAmount += msg.value;
-        user.stakedAsset = ethAddress;
+        user.stakedAsset = ETH_ADDRESS;
         emit EthStaked(msg.sender, msg.value);
     }
 
@@ -297,8 +296,8 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         if (amount > available) revert BorrowLimitExceeded(amount, available);
 
         // update state
-        user.borrowedAssetAmount += amount;
-        user.borrowedAsset = token;
+        user.debtAmount += amount;
+        user.debtAsset = token;
 
         // Transfer logic
         _poolTransfer(token, msg.sender, amount);
@@ -318,26 +317,25 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     {
         User storage user = _user(msg.sender);
         if (!_activePosition(msg.sender)) revert NoActivePosition();
-        if (!_repayWithBorrowedAsset(msg.sender, token))
-            revert InvalidAsset(token);
+        if (!_repayWithdebtAsset(msg.sender, token)) revert InvalidAsset(token);
 
-        if (amount > user.borrowedAssetAmount)
-            revert OverPaymentNotSupported(amount, user.borrowedAssetAmount);
+        if (amount > user.debtAmount)
+            revert OverPaymentNotSupported(amount, user.debtAmount);
 
         // Transfer logic
         if (
-            !IERC20(user.borrowedAsset).transferFrom(
+            !IERC20(user.debtAsset).transferFrom(
                 msg.sender,
                 address(this),
                 amount
             )
-        ) revert TransferFailed(user.borrowedAsset, msg.sender, amount);
+        ) revert TransferFailed(user.debtAsset, msg.sender, amount);
 
         // update state
-        user.borrowedAssetAmount -= amount;
+        user.debtAmount -= amount;
 
-        if (user.borrowedAssetAmount == 0) {
-            user.borrowedAsset = address(0);
+        if (user.debtAmount == 0) {
+            user.debtAsset = address(0);
         }
 
         emit USDRepaid(msg.sender, amount);
@@ -348,8 +346,8 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         uint256 amount
     ) public nonReentrant nonZeroAmount(amount) {
         User storage user = _user(msg.sender);
-        if (user.borrowedAssetAmount != 0)
-            revert BorrowedAmountNotFullyRepaid(user.borrowedAssetAmount);
+        if (user.debtAmount != 0)
+            revert BorrowedAmountNotFullyRepaid(user.debtAmount);
         if (amount > user.stakedAmount)
             revert NotEnoughCollateral(user.stakedAmount, amount);
 
@@ -375,7 +373,7 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     /// @param repayAmount The amount (in borrowed token units, 18-dec assumed) the liquidator will repay on behalf of the borrower.
     /// Requirements:
     /// - borrower's position must exist and be below the liquidation threshold
-    /// - repayAmount is capped by CLOSE_FACTOR_BPS of outstanding borrowedAssetAmount
+    /// - repayAmount is capped by closeFactor_BPS of outstanding debtAmount
     /// - liquidator must `approve` repay token to this contract
     function liquidate(
         address borrower,
@@ -395,10 +393,7 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
             user.stakedAsset,
             user.stakedAmount
         );
-        uint256 borrowedUsd = getUsdValue(
-            user.borrowedAsset,
-            user.borrowedAssetAmount
-        );
+        uint256 borrowedUsd = getUsdValue(user.debtAsset, user.debtAmount);
 
         // === 2) Check if position is liquidatable ===
         // Position is liquidatable if borrowedUsd > collateralUsdValue * LIQUIDATION_THRESHOLD_BPS / BPS_DENOMINATOR
@@ -411,11 +406,11 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
 
         // === 3) Determine the maximum repay allowed by close factor ===
         // closeFactor caps how much of the borrow can be repaid in one liquidation (e.g., 50%).
-        if (CLOSE_FACTOR == 0 || CLOSE_FACTOR > PCT_DENOMINATOR)
+        if (closeFactor == 0 || closeFactor > PCT_DENOMINATOR)
             revert InvalidCloseFactor();
-        // cap repayAmount to borrower's outstanding borrowedAssetAmount * CLOSE_FACTOR_BPS / BPS_DENOMINATOR
-        uint256 maxRepayAllowed = user.borrowedAssetAmount.mulDivDown(
-            CLOSE_FACTOR,
+        // cap repayAmount to borrower's outstanding debtAmount * closeFactor_BPS / BPS_DENOMINATOR
+        uint256 maxRepayAllowed = user.debtAmount.mulDivDown(
+            closeFactor,
             PCT_DENOMINATOR
         );
 
@@ -424,16 +419,16 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
             : repayAmount;
 
         // compute USD value of the actualRepay
-        uint256 repayUsdValue = getUsdValue(user.borrowedAsset, actualRepay);
+        uint256 repayUsdValue = getUsdValue(user.debtAsset, actualRepay);
 
         // === 4) Compute how much collateral (in USD) is seizable, then convert to collateral token units ===
         // seizableUsd = repayUsdValue * (1 + liquidationBonus)
         uint256 seizableUsd = repayUsdValue.mulDivDown(
-            PCT_DENOMINATOR + LIQUIDATION_BONUS,
+            PCT_DENOMINATOR + liquidationBonus,
             PCT_DENOMINATOR
         );
 
-        // Get price of collateral token (USD per token, 18-dec). If collateral is ETH, token address should be ethAddress or handled inside getLatestPrice.
+        // Get price of collateral token (USD per token, 18-dec). If collateral is ETH, token address should be ETH_ADDRESS or handled inside getLatestPrice.
         uint256 collateralPrice = getLatestPrice(user.stakedAsset); // 18-dec USD per 1 unit of collateral token
 
         // seizableAmount in collateral token units = seizableUsd * WAD / collateralPrice
@@ -446,33 +441,33 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         }
 
         // === 5) Pull repay tokens from liquidator into pool/contract ===
-        // liquidator must approve this contract to transfer actualRepay of borrowedAsset
+        // liquidator must approve this contract to transfer actualRepay of debtAsset
         if (
-            !IERC20(user.borrowedAsset).transferFrom(
+            !IERC20(user.debtAsset).transferFrom(
                 msg.sender,
                 address(this),
                 actualRepay
             )
-        ) revert TransferFailed(user.borrowedAsset, msg.sender, actualRepay);
+        ) revert TransferFailed(user.debtAsset, msg.sender, actualRepay);
 
         // === 6) Update borrower state (checks-effects-interactions) ===
         // Reduce borrowed asset amount and borrowedUsd (use repayUsdValue)
-        if (actualRepay >= user.borrowedAssetAmount) {
+        if (actualRepay >= user.debtAmount) {
             // Repaying all (should not happen due to close factor but handle it)
-            user.borrowedAssetAmount = 0;
+            user.debtAmount = 0;
             // user.borrowedUsd = 0;
-            user.borrowedAsset = address(0);
+            user.debtAsset = address(0);
         }
 
-        user.borrowedAssetAmount -= actualRepay;
+        user.debtAmount -= actualRepay;
 
         // === 7) Send seized collateral to liquidator (handle ETH vs ERC20) ===
-        if (user.stakedAsset == ethAddress) {
+        if (user.stakedAsset == ETH_ADDRESS) {
             // payable(msg.sender).transfer(seizeAmount);
             // ETH collateral
             (bool sent, ) = payable(msg.sender).call{value: seizableAmount}("");
             if (!sent)
-                revert TransferFailed(ethAddress, msg.sender, seizableAmount);
+                revert TransferFailed(ETH_ADDRESS, msg.sender, seizableAmount);
         }
 
         // Reduce collateral
@@ -511,26 +506,42 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     }
 
     function _activePosition(address user) internal view returns (bool) {
-        return users[user].borrowedAssetAmount > 0;
+        return users[user].debtAmount > 0;
     }
 
-    function _repayWithBorrowedAsset(
+    function _onlyApprovedToken(address token) internal view {
+        if (!approvedTokens[token]) revert TokenNotApproved(token);
+    }
+
+    function _invalidAddrress(address addr) internal pure {
+        if (addr == address(0)) revert InvalidAddress(addr);
+    }
+
+    function _invalidValue(uint256 amount) internal pure {
+        if (amount == 0) revert InvalidAmount();
+    }
+
+    function _onlyActive(address borrower) internal view {
+        if (!_activePosition(borrower)) revert NoActivePosition();
+    }
+
+    function _repayWithdebtAsset(
         address user,
         address token
     ) internal view returns (bool) {
-        return (users[user].borrowedAsset == token);
+        return (users[user].debtAsset == token);
     }
 
     function _default(address user) internal {
         User storage u = _user(user);
-        u.borrowedAsset = address(0);
-        u.borrowedAssetAmount = 0;
+        u.debtAsset = address(0);
+        u.debtAmount = 0;
         u.stakedAsset = address(0);
         u.stakedAmount = 0;
     }
 
     function _getTokenDecimals(address token) internal view returns (uint8) {
-        if (token == ethAddress) {
+        if (token == ETH_ADDRESS) {
             return 18;
         }
         try IERC20Metadata(token).decimals() returns (uint8 decimals) {
@@ -567,13 +578,13 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
 
         //  get USD value of staked asset
         uint256 assetUsdValue = getUsdValue(u.stakedAsset, u.stakedAmount);
-        //  Borrowing power = collateralUsd × LTV
-        uint256 borrowingPower = assetUsdValue.mulDivDown(LTV, PCT_DENOMINATOR);
+        //  Borrowing power = collateralUsd × ltv
+        uint256 borrowingPower = assetUsdValue.mulDivDown(ltv, PCT_DENOMINATOR);
 
         //  USD value of what the user already borrowed
-        uint256 borrowedUsd = u.borrowedAssetAmount == 0
+        uint256 borrowedUsd = u.debtAmount == 0
             ? 0
-            : getUsdValue(u.borrowedAsset, u.borrowedAssetAmount);
+            : getUsdValue(u.debtAsset, u.debtAmount);
 
         //  Prevent underflow: user borrowed more than allowed
         if (borrowedUsd >= borrowingPower) {

@@ -130,7 +130,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			".deps/npm/@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": "AggregatorV3Interface"
+			"node_modules/@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": "AggregatorV3Interface"
 		},
 		"evmVersion": "prague",
 		"libraries": {},
@@ -141,10 +141,14 @@
 			"enabled": false,
 			"runs": 200
 		},
-		"remappings": []
+		"remappings": [
+			":@chainlink/=node_modules/@chainlink/",
+			":@openzeppelin/=lib/openzeppelin-contracts/",
+			":@solmate/=lib/solmate/"
+		]
 	},
 	"sources": {
-		".deps/npm/@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+		"node_modules/@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
 			"keccak256": "0x257a8d28fa83d3d942547c8e129ef465e4b5f3f31171e7be4739a4c98da6b4f0",
 			"license": "MIT",
 			"urls": [

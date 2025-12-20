@@ -24,7 +24,7 @@
 						"type": "uint256"
 					}
 				],
-				"name": "BadLtv",
+				"name": "Badltv",
 				"type": "error"
 			},
 			{
@@ -359,19 +359,6 @@
 				"inputs": [
 					{
 						"indexed": false,
-						"internalType": "uint256",
-						"name": "newLtv",
-						"type": "uint256"
-					}
-				],
-				"name": "LtvUpdated",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
 						"internalType": "address",
 						"name": "newAddress",
 						"type": "address"
@@ -483,8 +470,34 @@
 				"type": "event"
 			},
 			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "newltv",
+						"type": "uint256"
+					}
+				],
+				"name": "ltvUpdated",
+				"type": "event"
+			},
+			{
 				"stateMutability": "payable",
 				"type": "fallback"
+			},
+			{
+				"inputs": [],
+				"name": "ETH_ADDRESS",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
 			},
 			{
 				"inputs": [
@@ -553,19 +566,6 @@
 				"name": "borrowAsset",
 				"outputs": [],
 				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "ethAddress",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -836,7 +836,7 @@
 						"type": "uint256"
 					}
 				],
-				"name": "setLtv",
+				"name": "setltv",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -958,7 +958,7 @@
 				"liquidate(address,uint256)": {
 					"params": {
 						"borrower": "The borrower to liquidate.",
-						"repayAmount": "The amount (in borrowed token units, 18-dec assumed) the liquidator will repay on behalf of the borrower. Requirements: - borrower's position must exist and be below the liquidation threshold - repayAmount is capped by CLOSE_FACTOR_BPS of outstanding borrowedAssetAmount - liquidator must `approve` repay token to this contract"
+						"repayAmount": "The amount (in borrowed token units, 18-dec assumed) the liquidator will repay on behalf of the borrower. Requirements: - borrower's position must exist and be below the liquidation threshold - repayAmount is capped by closeFactor_BPS of outstanding borrowedAssetAmount - liquidator must `approve` repay token to this contract"
 					}
 				},
 				"owner()": {
@@ -1008,26 +1008,14 @@
 			"enabled": false,
 			"runs": 200
 		},
-		"remappings": []
+		"remappings": [
+			":@chainlink/=node_modules/@chainlink/",
+			":@openzeppelin/=lib/openzeppelin-contracts/",
+			":@solmate/=lib/solmate/"
+		]
 	},
 	"sources": {
-		"/lib/solmate/src/utils/FixedPointMathLib.sol": {
-			"keccak256": "0x1b62af9baf5b8e991ed7531bc87f45550ba9d61e8dbff5caf237ccaf3a3fd843",
-			"license": "AGPL-3.0-only",
-			"urls": [
-				"bzz-raw://b7b38b977c5305b18ceefbeed4c9ceaaaefa419b520de62de6604ea661f8c0a9",
-				"dweb:/ipfs/QmecMRzgfMyDVa2pvBqMMDLYBappaj7Aa3qcMoQYEQrhWi"
-			]
-		},
-		"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
-			"keccak256": "0x257a8d28fa83d3d942547c8e129ef465e4b5f3f31171e7be4739a4c98da6b4f0",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://6d39e11b1dc7b9b8ccdabbc9be442ab7cda4a81c748f57e316dcb1bcb4a28bf9",
-				"dweb:/ipfs/QmaG6vz6W6iEUBsbHSBob5mdcitYxWjoygxREHpsJHfWrS"
-			]
-		},
-		"@openzeppelin/contracts/access/Ownable.sol": {
+		"lib/openzeppelin-contracts/contracts/access/Ownable.sol": {
 			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
 			"license": "MIT",
 			"urls": [
@@ -1035,7 +1023,7 @@
 				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
 			]
 		},
-		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+		"lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol": {
 			"keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
 			"license": "MIT",
 			"urls": [
@@ -1043,7 +1031,7 @@
 				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
 			]
 		},
-		"@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+		"lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
 			"keccak256": "0xd6fa4088198f04eef10c5bce8a2f4d60554b7ec4b987f684393c01bf79b94d9f",
 			"license": "MIT",
 			"urls": [
@@ -1051,7 +1039,7 @@
 				"dweb:/ipfs/QmSLr6bHkPFWT7ntj34jmwfyskpwo97T9jZUrk5sz3sdtR"
 			]
 		},
-		"@openzeppelin/contracts/utils/Context.sol": {
+		"lib/openzeppelin-contracts/contracts/utils/Context.sol": {
 			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
 			"license": "MIT",
 			"urls": [
@@ -1075,12 +1063,28 @@
 				"dweb:/ipfs/QmarDJ5hZEgBtCmmrVzEZWjub9769eD686jmzb2XpSU1cM"
 			]
 		},
-		"src/contracts/MiniLend.sol": {
-			"keccak256": "0xfc051d0f6cf6f189d38cf784edc3b142874b682314181b985c014d79f3cc1931",
+		"lib/solmate/src/utils/FixedPointMathLib.sol": {
+			"keccak256": "0x1b62af9baf5b8e991ed7531bc87f45550ba9d61e8dbff5caf237ccaf3a3fd843",
+			"license": "AGPL-3.0-only",
+			"urls": [
+				"bzz-raw://b7b38b977c5305b18ceefbeed4c9ceaaaefa419b520de62de6604ea661f8c0a9",
+				"dweb:/ipfs/QmecMRzgfMyDVa2pvBqMMDLYBappaj7Aa3qcMoQYEQrhWi"
+			]
+		},
+		"node_modules/@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+			"keccak256": "0x257a8d28fa83d3d942547c8e129ef465e4b5f3f31171e7be4739a4c98da6b4f0",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a83377d52b1deb2d4317361bea0073c84829f52e94471403b1723a2cf3308050",
-				"dweb:/ipfs/QmYbNsLueB4A8ASaJNqu9ntNJQLnUwFq2nXV8VJqsmmjC1"
+				"bzz-raw://6d39e11b1dc7b9b8ccdabbc9be442ab7cda4a81c748f57e316dcb1bcb4a28bf9",
+				"dweb:/ipfs/QmaG6vz6W6iEUBsbHSBob5mdcitYxWjoygxREHpsJHfWrS"
+			]
+		},
+		"src/contracts/MiniLend.sol": {
+			"keccak256": "0xa923f4f723d293a709afa825b85344b3b3c8e19a27dbb8e082830fd71438ae94",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://0d0c7a2f55829fa919a27d9ddc9f35e442ffda066bcc05f2b59fd356070593b5",
+				"dweb:/ipfs/QmRU3v3CxG3fAKw5tLZ8DGjJ1yeV1tCt7mr1XvxHLmCN5M"
 			]
 		}
 	},

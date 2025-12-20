@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Test.sol";
-import "../src/contracts/MiniLend.sol";
-import "./mocks/MockERC20.sol";
-import "./mocks/MockAggregator.sol";
+import {Test} from "forge-std/Test.sol";
+import {MiniLend} from "../src/contracts/MiniLend.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {MockAggregator} from "./mocks/MockAggregator.sol";
 
 contract MiniLendTest is Test {
     MiniLend lend;
@@ -24,9 +24,9 @@ contract MiniLendTest is Test {
 
         // Prices
         ethFeed.setPrice(2000e8); // ETH = $2000
-        usdcFeed.setPrice(1e8);   // USDC = $1
+        usdcFeed.setPrice(1e8); // USDC = $1
 
-        lend.setFeed(lend.ethAddress(), address(ethFeed));
+        lend.setFeed(lend.ETH_ADDRESS(), address(ethFeed));
         lend.setFeed(address(usdc), address(usdcFeed));
 
         lend.approveToken(address(usdc));
@@ -41,7 +41,7 @@ contract MiniLendTest is Test {
         vm.prank(alice);
         lend.stakeEth{value: 10 ether}();
 
-        (, uint256 staked,,) = lend.getUser(alice);
+        (, uint256 staked, , ) = lend.getUser(alice);
         assertEq(staked, 10 ether);
     }
 
@@ -81,23 +81,22 @@ contract MiniLendTest is Test {
     }
 
     function testLiquidationWorks() public {
-    vm.startPrank(alice);
-    lend.stakeEth{value: 10 ether}();
-    lend.borrowAsset(address(usdc), 9_000e18);
-    vm.stopPrank();
+        vm.startPrank(alice);
+        lend.stakeEth{value: 10 ether}();
+        lend.borrowAsset(address(usdc), 9_000e18);
+        vm.stopPrank();
 
-    // ETH price crashes to $1000
-    ethFeed.setPrice(1000e8);
+        // ETH price crashes to $1000
+        ethFeed.setPrice(1000e8);
 
-    usdc.mint(bob, 5_000e18);
-    vm.startPrank(bob);
-    usdc.approve(address(lend), 5_000e18);
+        usdc.mint(bob, 5_000e18);
+        vm.startPrank(bob);
+        usdc.approve(address(lend), 5_000e18);
 
-    lend.liquidate(alice, 5_000e18);
-    vm.stopPrank();
+        lend.liquidate(alice, 5_000e18);
+        vm.stopPrank();
 
-    (, uint256 staked,,) = lend.getUser(alice);
-    assertLt(staked, 10 ether);
-}
-
+        (, uint256 staked, , ) = lend.getUser(alice);
+        assertLt(staked, 10 ether);
+    }
 }
