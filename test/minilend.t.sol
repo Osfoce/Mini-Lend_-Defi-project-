@@ -12,8 +12,8 @@ contract MiniLendTest is Test {
     MockAggregator ethFeed;
     MockAggregator usdcFeed;
 
-    address alice = address(0xA);
-    address bob = address(0xB);
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
 
     function setUp() public {
         lend = new MiniLend();
@@ -63,7 +63,7 @@ contract MiniLendTest is Test {
         lend.stakeEth{value: 10 ether}();
 
         vm.expectRevert();
-        lend.borrowAsset(address(usdc), 11_000e18);
+        lend.borrowAsset(address(usdc), 17_000e18);
         vm.stopPrank();
     }
 
@@ -98,5 +98,38 @@ contract MiniLendTest is Test {
 
         (, uint256 staked, , ) = lend.getUser(alice);
         assertLt(staked, 10 ether);
+    }
+
+    function testLiquidatorOverpaysWhenCollateralIsInsufficient() public {
+        // Alice deposits small collateral
+        vm.startPrank(alice);
+        lend.stakeEth{value: 1 ether}(); // ~$2000
+        lend.borrowAsset(address(usdc), 1_000e18);
+        vm.stopPrank();
+
+        // ETH price crashes hard
+        ethFeed.setPrice(500e8); // $500
+
+        // Bob prepares to liquidate
+        usdc.mint(bob, 1_000e18);
+        vm.startPrank(bob);
+        usdc.approve(address(lend), type(uint256).max);
+
+        uint256 bobBalanceBefore = usdc.balanceOf(bob);
+
+        lend.liquidate(alice, 1_000e18);
+
+        uint256 bobBalanceAfter = usdc.balanceOf(bob);
+        vm.stopPrank();
+
+        // BUG: Bob paid full repay but got less collateral value
+        uint256 repaid = bobBalanceBefore - bobBalanceAfter;
+
+        assertGt(repaid, 0);
+        assertLt(
+            address(bob).balance,
+            1 ether,
+            "Liquidator overpaid and got capped collateral"
+        );
     }
 }

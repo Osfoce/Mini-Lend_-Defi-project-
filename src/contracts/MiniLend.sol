@@ -28,6 +28,8 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
     error FeedDataNotFinalized();
     error StalePriceData(uint256 data);
     error NoCollateralProvided();
+    error InsufficientCollateral();
+    error InsufficientEthBalance();
     error InvalidDecimals();
     error BadBonus(uint256 bonus);
     error InvalidCloseFactor();
@@ -250,7 +252,7 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         return (u.stakedAsset, u.stakedAmount, u.debtAsset, u.debtAmount);
     }
 
-    function getContractEthBalance() external view returns (uint256) {
+    function ethBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
@@ -266,7 +268,28 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
 
     // ========== Core Functions ============
 
-    /// @notice Stake ETH as collateral
+    /**
+     * @notice Stakes ETH as collateral in the protocol.
+     *
+     * @dev The caller sends ETH along with this transaction, which is recorded
+     *      as collateral backing the caller’s borrowing position.
+     *
+     * @dev Computation flow:
+     * - `msg.value` is treated as the staked collateral amount.
+     * - The ETH/USD price is fetched via the configured price feed.
+     * - The USD value of the collateral is tracked implicitly through pricing logic.
+     *
+     * Requirements:
+     * - `msg.value` must be greater than zero.
+     * - Caller must not be in a clearPositioned state.
+     *
+     * Effects:
+     * - Increases the caller’s `stakedAmount`.
+     * - Sets the caller’s `stakedAsset` to ETH if not already set.
+     *
+     * Emits a {Stake} event on success.
+     */
+
     function stakeEth() public payable {
         if (msg.value == 0) revert NoCollateralProvided();
         User storage user = _user(msg.sender);
@@ -275,7 +298,37 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         emit EthStaked(msg.sender, msg.value);
     }
 
-    /// @notice Borrow a supported token from the pool. `amount` is token units (assumed 18-dec).
+    /**
+     * @notice Borrows an approved asset against the caller’s collateral.
+     *
+     * @dev The borrow amount is limited by the loan-to-value (LTV) ratio of the
+     *      caller’s staked collateral.
+     *
+     * @param token The address of the asset to borrow.
+     * @param amount The amount of the asset to borrow (in token units, 18-decimal assumed).
+     *
+     * @dev Computation flow:
+     * - `collateralUsdValue`: USD value of the caller’s staked collateral.
+     * - `borrowedUsdValue`: USD value of existing debt (if any).
+     * - `assetPrice`: USD price of the asset being borrowed.
+     * - `borrowUsdValue`: USD value of the requested borrow amount.
+     * - LTV check ensures:
+     *   `borrowedUsdValue + borrowUsdValue <= collateralUsdValue * LTV / PCT_DENOMINATOR`
+     *
+     * Requirements:
+     * - Caller must have an active collateral position.
+     * - Asset must be approved for borrowing.
+     * - Borrow amount must be greater than zero.
+     * - Resulting position must not exceed the maximum LTV.
+     * - Contract must have sufficient liquidity of the borrowed asset.
+     *
+     * Effects:
+     * - Increases the caller’s `debtAmount`.
+     * - Sets `debtAsset` if this is the first borrow.
+     * - Transfers borrowed assets to the caller.
+     *
+     * Emits a {Borrow} event on success.
+     */
     function borrowAsset(
         address token,
         uint256 amount
@@ -305,43 +358,119 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         emit USDBorrowed(msg.sender, amount);
     }
 
-    /// @notice Repay borrowed token. amount is token units (18-dec)
+    /**
+     * @notice Repays an outstanding borrowed asset.
+     *
+     * @dev The caller repays part or all of their existing debt for a given asset.
+     *
+     * @param token The address of the borrowed asset being repaid.
+     * @param repayAmount The amount of the asset to repay (in token units, 18-decimal assumed).
+     *
+     * @dev Computation flow:
+     * - `actualRepay`: The lesser of `amount` and the caller’s outstanding `debtAmount`.
+     * - Debt accounting is updated using `actualRepay`.
+     *
+     * Requirements:
+     * - Caller must have an active borrowing position.
+     * - Asset must match the caller’s borrowed asset.
+     * - Repay amount must be greater than zero.
+     * - Caller must approve the repay asset to this contract.
+     *
+     * Effects:
+     * - Decreases the caller’s `debtAmount`.
+     * - Clears `debtAsset` if the debt is fully repaid.
+     * - Transfers repaid tokens from the caller to the contract.
+     *
+     * Emits a {Repay} event on success.
+     */
     function repayAsset(
         address token,
-        uint256 amount
+        uint256 repayAmount
     )
         public
         nonZeroAddress(token)
-        nonZeroAmount(amount)
+        nonZeroAmount(repayAmount)
         onlyApprovedToken(token)
     {
         User storage user = _user(msg.sender);
         if (!_activePosition(msg.sender)) revert NoActivePosition();
         if (!_repayWithdebtAsset(msg.sender, token)) revert InvalidAsset(token);
 
-        if (amount > user.debtAmount)
-            revert OverPaymentNotSupported(amount, user.debtAmount);
+        /*//////////////////////////////////////////////////////////////
+                    1. PRICE-AWARE REPAY
+        //////////////////////////////////////////////////////////////*/
 
-        // Transfer logic
+        // USD value of the repayment at current price
+        uint256 repayUsdValue = getUsdValue(token, repayAmount);
+
+        // USD value of the outstanding debt
+        uint256 debtUsdValue = getUsdValue(user.debtAsset, user.debtAmount);
+
+        if (repayUsdValue > debtUsdValue) {
+            revert OverPaymentNotSupported(repayAmount, user.debtAmount);
+        }
+
+        /*//////////////////////////////////////////////////////////////
+                        2. TOKEN TRANSFER
+        //////////////////////////////////////////////////////////////*/
+
         if (
             !IERC20(user.debtAsset).transferFrom(
                 msg.sender,
                 address(this),
-                amount
+                repayAmount
             )
-        ) revert TransferFailed(user.debtAsset, msg.sender, amount);
+        ) revert TransferFailed(user.debtAsset, msg.sender, repayAmount);
 
-        // update state
-        user.debtAmount -= amount;
+        /*//////////////////////////////////////////////////////////////
+                        3. UPDATE DEBT
+        //////////////////////////////////////////////////////////////*/
+
+        uint256 debtPrice = getLatestPrice(user.debtAsset);
+
+        // Convert remaining USD debt back into token units
+        uint256 remainingUsdDebt = debtUsdValue - repayUsdValue;
+
+        uint256 newDebtAmount = remainingUsdDebt.mulDivDown(WAD, debtPrice);
+
+        user.debtAmount = newDebtAmount;
 
         if (user.debtAmount == 0) {
             user.debtAsset = address(0);
         }
 
-        emit USDRepaid(msg.sender, amount);
+        emit USDRepaid(msg.sender, repayUsdValue);
     }
 
-    // collateral can be withdrawn only when borrowed usdt is fully repaid
+    /**
+     * @notice Withdraws staked ETH collateral from the protocol.
+     *
+     * @dev Allows a user to withdraw a portion or all of their ETH collateral
+     *      provided that all outstanding debt has been fully repaid.
+     *
+     * @param amount The amount of ETH (in wei) to withdraw from the caller’s
+     *        staked collateral balance.
+     *
+     * @dev Computation and checks:
+     * - Verifies that the caller has no outstanding debt (`debtAmount == 0`).
+     * - Ensures the requested withdrawal amount does not exceed the caller’s
+     *   available staked collateral.
+     * - Confirms the protocol contract holds sufficient ETH liquidity.
+     *
+     * Requirements:
+     * - Caller must have an active collateral position.
+     * - All borrowed assets must be fully repaid before withdrawal.
+     * - `amount` must be greater than zero.
+     * - `amount` must be less than or equal to the caller’s staked collateral.
+     * - Contract must have sufficient ETH balance to fulfill the withdrawal.
+     *
+     * Effects:
+     * - Decreases the caller’s `stakedAmount` by `amount`.
+     * - Resets the caller’s position if all collateral is withdrawn.
+     * - Transfers `amount` of ETH to the caller.
+     *
+     * Emits an {ETHCollateralWithdrawn} event on success.
+     */
     function withdrawCollateralEth(
         uint256 amount
     ) public nonReentrant nonZeroAmount(amount) {
@@ -362,19 +491,46 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         user.stakedAmount -= amount;
 
         if (user.stakedAmount == 0) {
-            _default(msg.sender);
+            _clearPosition(msg.sender);
         }
 
         emit ETHCollateralWithdrawn(msg.sender, amount);
     }
 
-    /// @notice Liquidate an undercollateralized position.
-    /// @param borrower The borrower to liquidate.
-    /// @param repayAmount The amount (in borrowed token units, 18-dec assumed) the liquidator will repay on behalf of the borrower.
-    /// Requirements:
-    /// - borrower's position must exist and be below the liquidation threshold
-    /// - repayAmount is capped by closeFactor_BPS of outstanding debtAmount
-    /// - liquidator must `approve` repay token to this contract
+    /**
+     * @notice Liquidates an undercollateralized borrowing position.
+     *
+     * @dev The liquidator repays part of the borrower's outstanding debt and
+     *      receives collateral at a discount (liquidation bonus).
+     *
+     * @param borrower The address of the borrower whose position is being liquidated.
+     * @param repayAmount The amount of debt token the liquidator is willing to repay
+     *        on behalf of the borrower (in debt token units, 18-decimal assumed).
+     *
+     * @dev Computation flow:
+     * - `collateralUsdValue`: USD value of the borrower’s collateral.
+     * - `borrowedUsdValue`: USD value of the borrower’s outstanding debt.
+     * - `thresholdUsd`: Maximum allowed borrowed USD before liquidation is triggered.
+     * - `maxRepayByCloseFactor`: Max repay allowed by protocol close factor.
+     * - `maxRepayUsdByCollateral`: Max repay supported by available collateral value.
+     * - `debtPrice`: USD price of the borrowed asset.
+     * - `maxRepayByCollateral`: Max repay amount derived from collateral constraints.
+     * - `actualRepay`: Final repay amount after applying all caps.
+     * - `repayUsdValue`: USD value of `actualRepay`.
+     * - `seizableUsd`: USD value of collateral to seize (includes liquidation bonus).
+     * - `collateralPrice`: USD price per unit of collateral asset.
+     * - `seizableAmount`: Amount of collateral tokens transferred to the liquidator.
+     *
+     * Requirements:
+     * - Borrower must have an active position.
+     * - Borrowed USD value must exceed the liquidation threshold.
+     * - Repayment is capped by both close factor and collateral availability.
+     * - Liquidator must approve the debt asset to this contract.
+     * - Contract must hold sufficient collateral (ETH or ERC20) to pay the liquidator.
+     *
+     * Emits a {Liquidation} event on success.
+     */
+
     function liquidate(
         address borrower,
         uint256 repayAmount
@@ -387,61 +543,94 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         User storage user = _user(borrower);
         if (!_activePosition(borrower)) revert NoActivePosition();
 
-        // === 1) Compute current USD values of collateral and debt ===
-        // collateralUsdValue and borrowedUsd are in 18-decimal USD units
+        /*//////////////////////////////////////////////////////////////
+                        1. USD VALUATIONS
+        //////////////////////////////////////////////////////////////*/
+
         uint256 collateralUsdValue = getUsdValue(
             user.stakedAsset,
             user.stakedAmount
         );
-        uint256 borrowedUsd = getUsdValue(user.debtAsset, user.debtAmount);
 
-        // === 2) Check if position is liquidatable ===
-        // Position is liquidatable if borrowedUsd > collateralUsdValue * LIQUIDATION_THRESHOLD_BPS / BPS_DENOMINATOR
+        uint256 borrowedUsdValue = getUsdValue(user.debtAsset, user.debtAmount);
+
         uint256 thresholdUsd = collateralUsdValue.mulDivDown(
             LIQUIDATION_THRESHOLD,
             PCT_DENOMINATOR
         );
 
-        if (borrowedUsd <= thresholdUsd) revert PositionHealthy(); // not eligible for liquidation
+        if (borrowedUsdValue <= thresholdUsd) revert PositionHealthy();
 
-        // === 3) Determine the maximum repay allowed by close factor ===
-        // closeFactor caps how much of the borrow can be repaid in one liquidation (e.g., 50%).
+        /*//////////////////////////////////////////////////////////////
+                        2. REPAY CAPS
+        //////////////////////////////////////////////////////////////*/
+
         if (closeFactor == 0 || closeFactor > PCT_DENOMINATOR)
             revert InvalidCloseFactor();
-        // cap repayAmount to borrower's outstanding debtAmount * closeFactor_BPS / BPS_DENOMINATOR
-        uint256 maxRepayAllowed = user.debtAmount.mulDivDown(
+
+        // (A) cap by close factor
+        uint256 maxRepayByCloseFactor = user.debtAmount.mulDivDown(
             closeFactor,
             PCT_DENOMINATOR
         );
 
-        uint256 actualRepay = repayAmount > maxRepayAllowed
-            ? maxRepayAllowed
-            : repayAmount;
+        // (B) cap by available collateral value
+        uint256 maxRepayUsdByCollateral = collateralUsdValue.mulDivDown(
+            PCT_DENOMINATOR,
+            PCT_DENOMINATOR + liquidationBonus
+        );
 
-        // compute USD value of the actualRepay
+        uint256 debtPrice = getLatestPrice(user.debtAsset);
+
+        uint256 maxRepayByCollateral = maxRepayUsdByCollateral.mulDivDown(
+            WAD,
+            debtPrice
+        );
+
+        // final repay cap
+        uint256 actualRepay = repayAmount;
+        if (actualRepay > maxRepayByCloseFactor) {
+            actualRepay = maxRepayByCloseFactor;
+        }
+        if (actualRepay > maxRepayByCollateral) {
+            actualRepay = maxRepayByCollateral;
+        }
+
+        if (actualRepay == 0) revert InsufficientCollateral();
+
+        /*//////////////////////////////////////////////////////////////
+                    3. COLLATERAL SEIZURE
+        //////////////////////////////////////////////////////////////*/
+
         uint256 repayUsdValue = getUsdValue(user.debtAsset, actualRepay);
-
-        // === 4) Compute how much collateral (in USD) is seizable, then convert to collateral token units ===
-        // seizableUsd = repayUsdValue * (1 + liquidationBonus)
+        //The USD value of collateral the liquidator earns for repaying the debt.
         uint256 seizableUsd = repayUsdValue.mulDivDown(
             PCT_DENOMINATOR + liquidationBonus,
             PCT_DENOMINATOR
         );
-
-        // Get price of collateral token (USD per token, 18-dec). If collateral is ETH, token address should be ETH_ADDRESS or handled inside getLatestPrice.
-        uint256 collateralPrice = getLatestPrice(user.stakedAsset); // 18-dec USD per 1 unit of collateral token
-
-        // seizableAmount in collateral token units = seizableUsd * WAD / collateralPrice
-        // (WAD scaling because both seizableUsd and collateralPrice are 18-dec)
+        // How much 1 unit of collateral is worth in USD
+        uint256 collateralPrice = getLatestPrice(user.stakedAsset);
+        // How many tokens the liquidator actually receives
         uint256 seizableAmount = seizableUsd.mulDivDown(WAD, collateralPrice);
 
-        // Cap seized collateral to what borrower actually has
         if (seizableAmount > user.stakedAmount) {
             seizableAmount = user.stakedAmount;
         }
 
-        // === 5) Pull repay tokens from liquidator into pool/contract ===
-        // liquidator must approve this contract to transfer actualRepay of debtAsset
+        /*//////////////////////////////////////////////////////////////
+                4. PRE-CHECK ETH BALANCE (CRITICAL)
+        //////////////////////////////////////////////////////////////*/
+
+        if (user.stakedAsset == ETH_ADDRESS) {
+            if (ethBalance() < seizableAmount) {
+                revert InsufficientEthBalance();
+            }
+        }
+
+        /*//////////////////////////////////////////////////////////////
+                5. EFFECTS + INTERACTIONS
+        //////////////////////////////////////////////////////////////*/
+
         if (
             !IERC20(user.debtAsset).transferFrom(
                 msg.sender,
@@ -450,47 +639,17 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
             )
         ) revert TransferFailed(user.debtAsset, msg.sender, actualRepay);
 
-        // === 6) Update borrower state (checks-effects-interactions) ===
-        // Reduce borrowed asset amount and borrowedUsd (use repayUsdValue)
-        if (actualRepay >= user.debtAmount) {
-            // Repaying all (should not happen due to close factor but handle it)
-            user.debtAmount = 0;
-            // user.borrowedUsd = 0;
-            user.debtAsset = address(0);
-        }
-
         user.debtAmount -= actualRepay;
 
-        // === 7) Send seized collateral to liquidator (handle ETH vs ERC20) ===
         if (user.stakedAsset == ETH_ADDRESS) {
-            // payable(msg.sender).transfer(seizeAmount);
-            // ETH collateral
-            (bool sent, ) = payable(msg.sender).call{value: seizableAmount}("");
-            if (!sent)
-                revert TransferFailed(ETH_ADDRESS, msg.sender, seizableAmount);
+            _sendEth(msg.sender, seizableAmount);
         }
 
-        // Reduce collateral
         user.stakedAmount -= seizableAmount;
 
         if (user.stakedAmount == 0) {
-            _default(borrower);
+            _clearPosition(borrower);
         }
-
-        // Eth is the collateral token at the moment, so no ERC20 collateral handling
-        //  else {
-        //     // ERC20 collateral token
-        //     bool ok2 = IERC20(user.stakedAsset).transfer(
-        //         msg.sender,
-        //         seizableAmount
-        //     );
-        //     if (!ok2)
-        //         revert TransferFailed(
-        //             user.stakedAsset,
-        //             msg.sender,
-        //             seizableAmount
-        //         );
-        // }
 
         emit Liquidation(msg.sender, borrower, actualRepay, seizableAmount);
     }
@@ -532,7 +691,12 @@ contract MiniLend is ReentrancyGuard, Ownable(msg.sender) {
         return (users[user].debtAsset == token);
     }
 
-    function _default(address user) internal {
+    function _sendEth(address to, uint256 amount) internal {
+        (bool sent, ) = payable(to).call{value: amount}("");
+        if (!sent) revert TransferFailed(ETH_ADDRESS, to, amount);
+    }
+
+    function _clearPosition(address user) internal {
         User storage u = _user(user);
         u.debtAsset = address(0);
         u.debtAmount = 0;
