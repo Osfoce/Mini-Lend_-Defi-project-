@@ -19,12 +19,12 @@ contract MiniLendTest is Test {
         lend = new MiniLend();
 
         usdc = new MockERC20("USDC", "USDC", 18);
-        ethFeed = new MockAggregator();
-        usdcFeed = new MockAggregator();
+        ethFeed = new MockAggregator(2000e8);
+        usdcFeed = new MockAggregator(1e8);
 
         // Prices
-        ethFeed.setPrice(2000e8); // ETH = $2000
-        usdcFeed.setPrice(1e8); // USDC = $1
+        // ethFeed.setPrice(2000e8); // ETH = $2000
+        // usdcFeed.setPrice(1e8); // USDC = $1
 
         lend.setFeed(lend.ETH_ADDRESS(), address(ethFeed));
         lend.setFeed(address(usdc), address(usdcFeed));
@@ -80,6 +80,16 @@ contract MiniLendTest is Test {
         assertEq(borrowed, 0);
     }
 
+    function testWithdrawCollateralEth() public {
+        vm.startPrank(alice);
+        lend.stakeEth{value: 10 ether}();
+        lend.withdrawCollateralEth(9.5 ether);
+        vm.stopPrank();
+
+        (, uint256 staked, , ) = lend.getUser(alice);
+        assertEq(staked, 0.5 ether);
+    }
+
     function testLiquidationWorks() public {
         vm.startPrank(alice);
         lend.stakeEth{value: 10 ether}();
@@ -87,6 +97,7 @@ contract MiniLendTest is Test {
         vm.stopPrank();
 
         // ETH price crashes to $1000
+        // ethFeed = new MockAggregator(1000e8);
         ethFeed.setPrice(1000e8);
 
         usdc.mint(bob, 5_000e18);
@@ -108,6 +119,7 @@ contract MiniLendTest is Test {
         vm.stopPrank();
 
         // ETH price crashes hard
+        // ethFeed = new MockAggregator(500e8);
         ethFeed.setPrice(500e8); // $500
 
         // Bob prepares to liquidate
